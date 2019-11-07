@@ -1,0 +1,121 @@
+import { Constraint, MeasureSpec, Dimension } from "./utils";
+
+/**
+ * An holder representation of a ConstrainedView. Also contains the coordinate pairs
+ * (x1, y1) and (x2, y2) needed to position the view. (x1, y1) represents the top
+ * left corner position while (x2, y2) represents the bottom right corner
+ */
+export function ConstrainedViewViewHolder(viewObj, viewRef) {
+    this.viewObj = viewObj;
+    this.viewRef = viewRef;
+
+    this.id = viewObj.props.id || this.generateViewId();
+    this.marginTop = parseInt(viewObj.props.marginTop || 0);
+    this.marginLeft = parseInt(viewObj.props.marginLeft || 0);
+    this.marginRight = parseInt(viewObj.props.marginRight || 0);
+    this.marginBottom = parseInt(viewObj.props.marginBottom || 0);
+    this.leftToLeftOf = viewObj.props[Constraint.LEFT_TO_LEFT_OF] || null;
+    this.leftToRightOf = viewObj.props[Constraint.LEFT_TO_RIGHT_OF] || null;
+    this.rightToRightOf = viewObj.props[Constraint.RIGHT_TO_RIGHT_OF] || null;
+    this.rightToLeftOf = viewObj.props[Constraint.RIGHT_TO_LEFT_OF] || null;
+    this.topToTopOf = viewObj.props[Constraint.TOP_TO_TOP_OF] || null;
+    this.topToBottomOf = viewObj.props[Constraint.TOP_TO_BOTTOM_OF] || null;
+    this.bottomToBottomOf = viewObj.props[Constraint.BOTTOM_TO_BOTTOM_OF] || null;
+    this.bottomToTopOf = viewObj.props[Constraint.BOTTOM_TO_TOP_OF] || null;
+    this.horizontalBias = Math.max(0, Math.min(1, parseFloat(viewObj.props.horizontalBias) || 0.5));
+
+    this.validateAttributes();
+
+    this.isLeftConstrained = !!this.leftToLeftOf || !!this.leftToRightOf;
+    this.isRightConstrained = !!this.rightToRightOf || !!this.rightToLeftOf;
+    this.isFullyHorizontallyConstrained = this.isLeftConstrained && this.isRightConstrained;
+
+    this.x1 = 0;
+    this.y1 = 0;
+    this.x2 = 0;
+    this.y2 = 0;
+
+    this.constraints = [];
+
+    if (this.leftToLeftOf) this.constraints.push(new Constraint(Constraint.LEFT_TO_LEFT_OF, this.leftToLeftOf));
+    if (this.leftToRightOf) this.constraints.push(new Constraint(Constraint.LEFT_TO_RIGHT_OF, this.leftToRightOf));
+    if (this.rightToRightOf) this.constraints.push(new Constraint(Constraint.RIGHT_TO_RIGHT_OF, this.rightToRightOf));
+    if (this.rightToLeftOf) this.constraints.push(new Constraint(Constraint.RIGHT_TO_LEFT_OF, this.rightToLeftOf));
+    if (this.topToTopOf) this.constraints.push(new Constraint(Constraint.TOP_TO_TOP_OF, this.topToTopOf));
+    if (this.topToBottomOf) this.constraints.push(new Constraint(Constraint.TOP_TO_BOTTOM_OF, this.topToBottomOf));
+    if (this.bottomToBottomOf) this.constraints.push(new Constraint(Constraint.BOTTOM_TO_BOTTOM_OF, this.bottomToBottomOf));
+    if (this.bottomToTopOf) this.constraints.push(new Constraint(Constraint.BOTTOM_TO_TOP_OF, this.bottomToTopOf));
+}
+
+/** Generates a unique view id */
+ConstrainedViewViewHolder.prototype.generateViewId = function() {
+    const uniqueId = Math.random().toString();
+    return `view-${uniqueId.replace(/\d\./g, "")}`;
+};
+
+/** Checks the validity of attributes defined this view */
+ConstrainedViewViewHolder.prototype.validateAttributes = function() {
+    // Check for valid width string values
+    const propWidthValue = this.viewObj.props.width;
+    if (Object.prototype.toString.call(propWidthValue) === "[object Number]" && propWidthValue < 0)
+        throw `${this.id}: Width is a number and cannot be less than 0`;
+    if (
+        Object.prototype.toString.call(propWidthValue) === "[object String]" &&
+        ![Dimension.MATCH_PARENT, Dimension.MATCH_CONTENT].includes(propWidthValue)
+    )
+        throw `${this.id}: Width is a string and must either be "${Dimension.MATCH_PARENT}" or "${Dimension.MATCH_CONTENT}"`;
+
+    // Check for valid height string values
+    const propHeightValue = this.viewObj.props.height;
+    if (Object.prototype.toString.call(propHeightValue) === "[object Number]" && propHeightValue < 0)
+        throw `${this.id}: Height is a number and cannot be less than 0`;
+    if (
+        Object.prototype.toString.call(propHeightValue) === "[object String]" &&
+        ![Dimension.MATCH_PARENT, Dimension.MATCH_CONTENT].includes(propHeightValue)
+    )
+        throw `${this.id}: Height is a string and must either be "${Dimension.MATCH_PARENT}" or "${Dimension.MATCH_CONTENT}"`;
+
+    // Check for conflicting constraints
+    if (this.leftToLeftOf && this.leftToRightOf) throw `${this.id}: Conflicting constraints "leftToLeftOf" and "leftToRightOf"`;
+    if (this.rightToRightOf && this.rightToLeftOf) throw `${this.id}: Conflicting constraints "rightToRightOf" and "rightToLeftOf"`;
+    if (this.topToTopOf && this.topToBottomOf) throw `${this.id}: Conflicting constraints "topToTopOf" and "topToBottomOf"`;
+    if (this.bottomToBottomOf && this.bottomToTopOf) throw `${this.id}: Conflicting constraints "bottomToBottomOf" and "bottomToTopOf"`;
+
+    // Check constraint references to self
+    if (this.leftToLeftOf === this.id) throw `${this.id}: Cannot be constrained to self on "leftToLeftOf"`;
+    if (this.leftToRightOf === this.id) throw `${this.id}: Cannot be constrained to self on "leftToRightOf"`;
+    if (this.rightToRightOf === this.id) throw `${this.id}: Cannot be constrained to self on "rightToRightOf"`;
+    if (this.rightToLeftOf === this.id) throw `${this.id}: Cannot be constrained to self on "rightToLeftOf"`;
+    if (this.topToTopOf === this.id) throw `${this.id}: Cannot be constrained to self on "topToTopOf"`;
+    if (this.topToBottomOf === this.id) throw `${this.id}: Cannot be constrained to self on "topToBottomOf"`;
+    if (this.bottomToBottomOf === this.id) throw `${this.id}: Cannot be constrained to self on "bottomToBottomOf"`;
+    if (this.bottomToTopOf === this.id) throw `${this.id}: Cannot be constrained to self on "bottomToTopOf"`;
+};
+
+/** Returns the measure spec for the view width */
+ConstrainedViewViewHolder.prototype.measureWidth = function(parentRef) {
+    const { width: propWidth } = this.viewObj.props;
+    const { width: renderWidth } = this.viewRef.getBoundingClientRect();
+    const { width: parentWidth } = parentRef.current.getBoundingClientRect();
+    const propWidthIsNumeric = Object.prototype.toString.call(propWidth) === "[object Number]";
+    const horizontalMargin = this.marginLeft + this.marginRight;
+
+    if (propWidth === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
+    if (propWidth === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth + horizontalMargin);
+    if (propWidthIsNumeric && propWidth === 0 && this.isFullyHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
+    if (propWidthIsNumeric && propWidth === 0 && !this.isFullyHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, horizontalMargin);
+    if (propWidthIsNumeric && propWidth > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propWidth + horizontalMargin);
+};
+
+/** Returns the measure spec for the viewObj height */
+// ConstrainedViewViewHolder.prototype.measureHeight = function(parent) {
+// 	const { height: propHeight } = this.viewObj.props;
+// 	const { height: renderHeight } = this.viewRef.getBoundingClientRect();
+// 	const { height: parentHeight } = parent.current.getBoundingClientRect();
+// 	const propHeightIsNumeric = Object.prototype.toString.call(propHeight) === "[object Number]";
+//
+// 	if (propHeight === DimensionConstants.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentHeight);
+// 	if (propHeight === DimensionConstants.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderHeight);
+// 	if (propHeightIsNumeric && propHeight === 0) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
+// 	if (propHeightIsNumeric && propHeight > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propHeight);
+// };
