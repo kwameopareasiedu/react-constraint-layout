@@ -3,9 +3,7 @@ import React from "react";
 import PT from "prop-types";
 import { Visibility } from "./utils";
 
-/**
- * Represents a direct child of the ConstraintLayout
- */
+/** Represents a direct child of the ConstraintLayout */
 export const ConstrainedView = ({ rootRef, children, id }) => {
     return (
         <div ref={rootRef} id={id} className="constrained-view">
