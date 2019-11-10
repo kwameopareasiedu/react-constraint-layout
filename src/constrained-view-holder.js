@@ -26,7 +26,11 @@ export function ConstrainedViewHolder(view, ref) {
     this.topToBottomOf = view.props[Constraint.TOP_TO_BOTTOM_OF] || null;
     this.bottomToBottomOf = view.props[Constraint.BOTTOM_TO_BOTTOM_OF] || null;
     this.bottomToTopOf = view.props[Constraint.BOTTOM_TO_TOP_OF] || null;
-    this.horizontalBias = Math.max(0, Math.min(1, parseFloat(view.props.horizontalBias) || 0.5));
+    this.horizontalBias = (() => {
+        if (Object.prototype.toString.call(view.props.horizontalBias) === "[object Number]") {
+            return Math.max(0, Math.min(1, parseFloat(view.props.horizontalBias)));
+        } else return 0.5;
+    })();
 
     this.validateAttributes();
 
@@ -63,7 +67,7 @@ ConstrainedViewHolder.prototype.generateViewId = function() {
     return `view-${uniqueId.replace(/\d\./g, "")}`;
 };
 
-/** Checks the validity of attributes defined this view */
+/** Checks the validity of attributes defined for this view */
 ConstrainedViewHolder.prototype.validateAttributes = function() {
     const strDimensions = [Dimension.MATCH_PARENT, Dimension.MATCH_CONTENT];
 
@@ -104,13 +108,59 @@ ConstrainedViewHolder.prototype.measureWidth = function(parent) {
     const { width: renderWidth } = this.ref.getBoundingClientRect();
     const { width: parentWidth } = parent.getBoundingClientRect();
     const propWidthIsNumeric = Object.prototype.toString.call(propWidth) === "[object Number]";
-    const horizontalMargin = this.marginLeft + this.marginRight;
 
     if (propWidth === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
     if (propWidth === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth);
     if (propWidthIsNumeric && propWidth === 0 && this.isFullyHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
-    if (propWidthIsNumeric && propWidth === 0 && !this.isFullyHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, horizontalMargin);
-    if (propWidthIsNumeric && propWidth > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propWidth + horizontalMargin);
+    if (propWidthIsNumeric && propWidth === 0 && !this.isFullyHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
+    if (propWidthIsNumeric && propWidth > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propWidth);
+};
+
+/** Computes the final position coordinates for this view from a given measure spec */
+ConstrainedViewHolder.prototype.applyWidthBounds = function(measureSpec) {
+    const { value, spec } = measureSpec;
+
+    if (this.isFullyHorizontallyConstrained) {
+        const leftBound = this.boundX1 + this.marginLeft;
+        const rightBound = this.boundX2 - this.marginRight;
+        const widthBound = rightBound - leftBound;
+        const wiggleRoom = widthBound - value;
+
+        if (spec === MeasureSpec.EXACTLY) {
+            if (value === 0) {
+                // Stretch view
+                this.x1 = leftBound;
+                this.x2 = rightBound;
+            } else {
+                // Center view
+                this.x1 = leftBound + this.horizontalBias * wiggleRoom;
+                this.x2 = this.x1 + value;
+            }
+        } else if (spec === MeasureSpec.AT_MOST) {
+            if (this.boundX2 - this.boundX1 > value) {
+                // Stretch view to value (I.e. limit)
+                this.x1 = leftBound;
+                this.x2 = rightBound;
+            } else {
+                // Center view
+                this.x1 = leftBound + this.horizontalBias * wiggleRoom;
+                this.x2 = this.x1 + value;
+            }
+        } else if (spec === MeasureSpec.UNSPECIFIED) {
+            // Stretch view
+            this.x1 = leftBound;
+            this.x2 = rightBound;
+        }
+    } else if (this.isLeftConstrained) {
+        this.x1 = this.boundX1 + this.marginLeft;
+        this.x2 = this.x1 + value;
+    } else if (this.isRightConstrained) {
+        this.x2 = this.boundX2 - this.marginRight;
+        this.x1 = this.x2 - value;
+    } else {
+        this.x1 = this.marginLeft;
+        this.x2 = this.x1 + value;
+    }
 };
 
 /** Returns the measure spec for the view height */

@@ -57,8 +57,8 @@ ConstraintLayoutSolver.prototype.update = function() {
 
         // After defining the bounds of the view, use the width measure
         // spec to determine the final position within it's bounds
-        const measureSpec = this.measureBounds(viewHolder);
-        this.finalizePositionCoordinates(viewHolder, measureSpec);
+        const measureSpec = this.measureHorizontalBounds(viewHolder);
+        viewHolder.applyWidthBounds(measureSpec);
     }
 
     // console.log(this.viewHolders.map(viewHolder => viewHolder.toString()));
@@ -91,11 +91,11 @@ ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
 };
 
 /**
- * Generates a measure spec for the bounds of a view holder.
+ * Generates a measure spec for the horizontal bounds of a view holder.
  * When the bounds of a view holder is computed, the measure
  * spec aids in centering or value distribution
  */
-ConstraintLayoutSolver.prototype.measureBounds = function(viewHolder) {
+ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) {
     const { value: requestedWidth } = viewHolder.measureWidth(this.parent);
     const { width: parentWidth } = this.parent.getBoundingClientRect();
     let leftBound = 0;
@@ -128,51 +128,4 @@ ConstraintLayoutSolver.prototype.measureBounds = function(viewHolder) {
             return new MeasureSpec(MeasureSpec.UNSPECIFIED, requestedWidth);
         } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedWidth);
     } else return new MeasureSpec(MeasureSpec.AT_MOST, availableWidth);
-};
-
-/**
- * After bounds have been computed for a view holder, this determines the final values
- * of the coordinate pairs needed to position the view represented by the holder
- */
-ConstraintLayoutSolver.prototype.finalizePositionCoordinates = function(viewHolder, measureSpec) {
-    const { value, spec } = measureSpec;
-
-    if (viewHolder.isFullyHorizontallyConstrained) {
-        if (spec === MeasureSpec.EXACTLY) {
-            if (value === 0) {
-                // Stretch view, taking margins into consideration
-                viewHolder.x1 = viewHolder.boundX1 + viewHolder.marginLeft;
-                viewHolder.x2 = viewHolder.boundX2 - viewHolder.marginRight;
-            } else {
-                // Center view, taking horizontal bias into consideration
-                const widthBound = viewHolder.boundX2 - viewHolder.boundX1;
-                viewHolder.x1 = 0.5 * widthBound - 0.5 * value;
-                viewHolder.x2 = viewHolder.x1 + value;
-            }
-        } else if (spec === MeasureSpec.AT_MOST) {
-            if (viewHolder.boundX2 - viewHolder.boundX1 > value) {
-                // Stretch view to value (I.e. limit), taking margins into consideration
-                viewHolder.x1 = viewHolder.boundX1 + viewHolder.marginLeft;
-                viewHolder.x2 = viewHolder.x1 + value - viewHolder.marginRight;
-            } else {
-                // Center view with horizontal bias
-                const widthBound = viewHolder.boundX2 - viewHolder.boundX1;
-                viewHolder.x1 = 0.5 * widthBound - 0.5 * value;
-                viewHolder.x2 = viewHolder.x1 + value;
-            }
-        } else if (spec === MeasureSpec.UNSPECIFIED) {
-            // Stretch view, taking margins into consideration
-            viewHolder.x1 = viewHolder.boundX1 + viewHolder.marginLeft;
-            viewHolder.x2 = viewHolder.boundX2 - viewHolder.marginRight;
-        }
-    } else if (viewHolder.isLeftConstrained) {
-        viewHolder.x1 = viewHolder.boundX1 + viewHolder.marginLeft;
-        viewHolder.x2 = viewHolder.x1 + value;
-    } else if (viewHolder.isRightConstrained) {
-        viewHolder.x2 = viewHolder.boundX2 - viewHolder.marginRight;
-        viewHolder.x1 = viewHolder.x2 - value;
-    } else {
-        viewHolder.x1 = viewHolder.marginLeft;
-        viewHolder.x2 = viewHolder.x1 + value;
-    }
 };
