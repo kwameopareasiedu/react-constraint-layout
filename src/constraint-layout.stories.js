@@ -18,7 +18,7 @@ storiesOf("ConstraintLayout", module).add("default", () => {
                 <p style={{ backgroundColor: "yellow" }}>Third constrained view</p>
             </ConstrainedView>
 
-            <ConstrainedView id="view4" width={200} leftToLeftOf="view1" rightToRightOf="view1">
+            <ConstrainedView id="view4" width={200} leftToLeftOf="view1" rightToRightOf="view1" marginLeft={50} marginRight={250} horizontalBias={1}>
                 <p style={{ backgroundColor: "green" }}>Fourth constrained view</p>
             </ConstrainedView>
         </ConstraintLayout>

@@ -119,28 +119,22 @@ ConstrainedViewHolder.prototype.measureWidth = function(parent) {
 /** Computes the final position coordinates for this view from a given measure spec */
 ConstrainedViewHolder.prototype.applyWidthBounds = function(measureSpec) {
     const { value, spec } = measureSpec;
+    const leftBound = this.boundX1 + this.marginLeft;
+    const rightBound = this.boundX2 - this.marginRight;
 
     if (this.isFullyHorizontallyConstrained) {
-        const leftBound = this.boundX1 + this.marginLeft;
-        const rightBound = this.boundX2 - this.marginRight;
         const widthBound = rightBound - leftBound;
         const wiggleRoom = widthBound - value;
 
         if (spec === MeasureSpec.EXACTLY) {
-            if (value === 0) {
-                // Stretch view
-                this.x1 = leftBound;
-                this.x2 = rightBound;
-            } else {
-                // Center view
-                this.x1 = leftBound + this.horizontalBias * wiggleRoom;
-                this.x2 = this.x1 + value;
-            }
+            // Center view
+            this.x1 = leftBound + this.horizontalBias * wiggleRoom;
+            this.x2 = this.x1 + value;
         } else if (spec === MeasureSpec.AT_MOST) {
             if (this.boundX2 - this.boundX1 > value) {
                 // Stretch view to value (I.e. limit)
                 this.x1 = leftBound;
-                this.x2 = rightBound;
+                this.x2 = leftBound + value - this.marginRight;
             } else {
                 // Center view
                 this.x1 = leftBound + this.horizontalBias * wiggleRoom;
@@ -152,10 +146,10 @@ ConstrainedViewHolder.prototype.applyWidthBounds = function(measureSpec) {
             this.x2 = rightBound;
         }
     } else if (this.isLeftConstrained) {
-        this.x1 = this.boundX1 + this.marginLeft;
+        this.x1 = leftBound;
         this.x2 = this.x1 + value;
     } else if (this.isRightConstrained) {
-        this.x2 = this.boundX2 - this.marginRight;
+        this.x2 = rightBound;
         this.x1 = this.x2 - value;
     } else {
         this.x1 = this.marginLeft;
