@@ -10,12 +10,16 @@ storiesOf("ConstraintLayout", module).add("default", () => {
                 <p style={{ backgroundColor: "red" }}>First constrained view</p>
             </ConstrainedView>
 
-            <ConstrainedView id="view2" width={300} leftToLeftOf="view1" rightToRightOf="view1">
-                <p style={{ backgroundColor: "green" }}>Second constrained view</p>
+            <ConstrainedView id="view2" width="match_content" marginLeft={200}>
+                <p style={{ backgroundColor: "blue" }}>Second constrained view</p>
             </ConstrainedView>
 
             <ConstrainedView id="view3" width="match_content" rightToRightOf="view1" marginRight={100}>
                 <p style={{ backgroundColor: "yellow" }}>Third constrained view</p>
+            </ConstrainedView>
+
+            <ConstrainedView id="view4" width={200} leftToLeftOf="view1" rightToRightOf="view1">
+                <p style={{ backgroundColor: "green" }}>Fourth constrained view</p>
             </ConstrainedView>
         </ConstraintLayout>
     );

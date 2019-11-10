@@ -21,23 +21,26 @@ export const ConstraintLayout = ({ children: originalChildren }) => {
         return false;
     });
 
+    const viewSolver = useRef(function() {});
     const refs = useRef(Array(children.length).fill(null));
     const parentRef = useRef();
 
     useEffect(() => {
-        onWindowResized();
+        viewSolver.current = new ConstraintLayoutSolver(children, refs, parentRef.current);
         window.addEventListener("resize", onWindowResized);
+        onWindowResized();
+
         return () => window.removeEventListener("resize", onWindowResized);
     }, []);
 
     const onWindowResized = () => {
-        const { x: parentX, y: parentY } = parentRef.current.getBoundingClientRect();
-        const viewSolver = new ConstraintLayoutSolver(children, refs, parentRef);
+        const { x: parentX } = parentRef.current.getBoundingClientRect();
+        viewSolver.current.update();
 
-        for (const viewHolder of viewSolver.viewHolders) {
-            viewHolder.viewRef.style.left = `${viewHolder.x1 - parentX}px`;
+        for (const viewHolder of viewSolver.current.viewHolders) {
+            viewHolder.ref.style.left = `${viewHolder.x1 - parentX}px`;
+            viewHolder.ref.style.width = `${viewHolder.x2 - viewHolder.x1}px`;
             // viewHolder.viewRef.style.top = `${viewHolder.y1 - parentY}px`;
-            viewHolder.viewRef.style.width = `${viewHolder.x2 - viewHolder.x1}px`;
             // viewHolder.viewRef.style.height = `${viewHolder.y2 - viewHolder.y1}px`;
         }
     };

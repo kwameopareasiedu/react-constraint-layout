@@ -29,6 +29,7 @@ ConstrainedView.propTypes = {
     bottomToBottomOf: PT.oneOfType([PT.string, PT.array]),
     bottomToTopOf: PT.oneOfType([PT.string, PT.array]),
     visibility: PT.oneOf([Visibility.VISIBLE, Visibility.HIDDEN]),
+    horizontalBias: PT.number,
     children: PT.any,
     rootRef: PT.func
 };
