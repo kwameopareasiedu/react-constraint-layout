@@ -1,24 +1,25 @@
-import "./constraint-layout.scss";
 import PT from "prop-types";
 import React, { Children, cloneElement, useEffect, useRef } from "react";
 import { ConstraintLayoutSolver } from "./constraint-layout-solver";
 import { ConstrainedView } from "./constrained-view";
+import { isDefined } from "./utils";
 
 /**
  * ConstraintLayout which allows for positioning elements in a flat hierarchy
  * in a flexible manner with constraints.
  */
-export const ConstraintLayout = ({ children: originalChildren }) => {
-    const children = Children.toArray(originalChildren).filter(c => {
-        let childType;
+export const ConstraintLayout = ({ height, children: _children, ...props }) => {
+    if (!isDefined(height)) throw "<ConstraintLayout /> height is required";
 
-        if (Object.prototype.toString.call(c.type) === "[object Function]") {
-            if (c.type.prototype === ConstrainedView.prototype) return true;
-            childType = c.type.name;
-        } else childType = c.type;
+    const children = Children.toArray(_children).filter(c => {
+        const validChildType = (() => {
+            if (Object.prototype.toString.call(c.type) === "[object Function]") {
+                return c.type.prototype === ConstrainedView.prototype;
+            } else return false;
+        })();
 
-        console.error(`<${childType} /> cannot be a direct child of ConstraintLayout. Expected type of <ConstrainedView />`);
-        return false;
+        if (!validChildType) console.error("Only a <ConstrainedView /> can be a direct child of a <ConstrainedLayout />");
+        return validChildType;
     });
 
     const viewSolver = useRef(function() {});
@@ -26,7 +27,7 @@ export const ConstraintLayout = ({ children: originalChildren }) => {
     const parentRef = useRef();
 
     useEffect(() => {
-        viewSolver.current = new ConstraintLayoutSolver(children, refs, parentRef.current);
+        viewSolver.current = new ConstraintLayoutSolver(children, refs.current, parentRef.current);
         window.addEventListener("resize", onWindowResized);
         onWindowResized();
 
@@ -38,24 +39,24 @@ export const ConstraintLayout = ({ children: originalChildren }) => {
         viewSolver.current.update();
 
         for (const viewHolder of viewSolver.current.viewHolders) {
-            viewHolder.ref.style.left = `${viewHolder.x1 - parentX}px`;
-            viewHolder.ref.style.width = `${viewHolder.x2 - viewHolder.x1}px`;
+            viewHolder.ref.style.left = `${viewHolder.position.x1 - parentX}px`;
+            viewHolder.ref.style.width = `${viewHolder.position.x2 - viewHolder.position.x1}px`;
             // viewHolder.viewRef.style.top = `${viewHolder.y1 - parentY}px`;
             // viewHolder.viewRef.style.height = `${viewHolder.y2 - viewHolder.y1}px`;
         }
     };
 
     return (
-        <div ref={parentRef} className="constraint-layout">
-            {children.map((child, index) =>
-                cloneElement(child, {
-                    rootRef: node => (refs.current[index] = node)
-                })
-            )}
+        <div ref={parentRef} className="constraint-layout" style={{ position: "relative!important", height }} {...props}>
+            {children.map((child, index) => {
+                const refFn = node => (refs.current[index] = node);
+                return cloneElement(child, { _ref: refFn });
+            })}
         </div>
     );
 };
 
 ConstraintLayout.propTypes = {
-    children: PT.any
+    children: PT.any,
+    height: PT.oneOfType([PT.string, PT.number])
 };

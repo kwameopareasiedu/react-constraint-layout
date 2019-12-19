@@ -5,20 +5,20 @@ import { ConstrainedView } from "./constrained-view";
 
 storiesOf("ConstraintLayout", module).add("default", () => {
     return (
-        <ConstraintLayout>
-            <ConstrainedView id="view1" width="match_parent" leftToLeftOf="parent" rightToRightOf="parent">
+        <ConstraintLayout height="200px">
+            <ConstrainedView id="view1" width="match-parent" height="match-content" leftToLeftOf="parent" rightToRightOf="parent">
                 <p style={{ backgroundColor: "red" }}>First constrained view</p>
             </ConstrainedView>
 
-            <ConstrainedView id="view2" width="match_content" marginLeft={200}>
+            <ConstrainedView id="view2" width="match-content" height="match-content" marginLeft={200} topToBottomOf="view1">
                 <p style={{ backgroundColor: "blue" }}>Second constrained view</p>
             </ConstrainedView>
 
-            <ConstrainedView id="view3" width="match_content" rightToRightOf="view1" marginRight={100}>
+            <ConstrainedView id="view3" width="match-content" height="match-content" rightToRightOf="view1" marginRight={100}>
                 <p style={{ backgroundColor: "yellow" }}>Third constrained view</p>
             </ConstrainedView>
 
-            <ConstrainedView id="view4" width={200} leftToLeftOf="view1" rightToRightOf="view1" marginLeft={50} marginRight={250} horizontalBias={1}>
+            <ConstrainedView id="view4" width={200} height="match-content" leftToLeftOf="view1" rightToRightOf="view1" marginLeft={50}>
                 <p style={{ backgroundColor: "green" }}>Fourth constrained view</p>
             </ConstrainedView>
         </ConstraintLayout>

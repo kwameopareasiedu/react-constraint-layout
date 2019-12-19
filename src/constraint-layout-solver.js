@@ -9,11 +9,13 @@ export function ConstraintLayoutSolver(views, refs, parent) {
     this.parent = parent;
     this.viewHolders = [];
 
-    // Initializes the solver by creating the view holders for each view
+    // Initialize the solver by creating the view holders for each view
     for (let i = 0; i < views.length; i++) {
-        const viewHolder = new ConstrainedViewHolder(views[i], refs.current[i]);
-        if (!this.viewIdIsUnique(viewHolder.id)) throw new Error(`Duplicate ID: ${viewHolder.id}`);
-        this.viewHolders.push(viewHolder);
+        const viewHolder = new ConstrainedViewHolder(views[i], refs[i]);
+
+        if (!this.viewIdIsUnique(viewHolder.id)) {
+            throw `Duplicate ID: ${viewHolder.id}`;
+        } else this.viewHolders.push(viewHolder);
     }
 }
 
@@ -24,6 +26,11 @@ ConstraintLayoutSolver.prototype.viewIdIsUnique = function(viewId) {
 
 /** Updates the state of the view holders */
 ConstraintLayoutSolver.prototype.update = function() {
+    this.updateWidth();
+};
+
+/** Updates the state of the view holders */
+ConstraintLayoutSolver.prototype.updateWidth = function() {
     // Solve the width constraints for each view holder linearly. Because views
     // are related to each other, preceeding views would have most likely been
     // fully positioned prior to views that depend on them via constraints
@@ -32,8 +39,8 @@ ConstraintLayoutSolver.prototype.update = function() {
     for (const viewHolder of this.viewHolders) {
         // If it is not constrained horizontally, use the parent bounds as its bounds...
         if (!viewHolder.isLeftConstrained && !viewHolder.isRightConstrained) {
-            viewHolder.boundX1 = 0;
-            viewHolder.boundX2 = parentWidth;
+            viewHolder.bounds.x1 = 0;
+            viewHolder.bounds.x2 = parentWidth;
         } else {
             // ...else use the constraints to determine the bounds of the view
             for (const constraint of viewHolder.constraints) {
@@ -41,27 +48,25 @@ ConstraintLayoutSolver.prototype.update = function() {
 
                 if (targetHolder === PARENT_REF) {
                     // Constrained to parent view
-                    if (constraint.type === Constraint.LEFT_TO_LEFT_OF) viewHolder.boundX1 = 0;
-                    if (constraint.type === Constraint.LEFT_TO_RIGHT_OF) viewHolder.boundX1 = parentWidth;
-                    if (constraint.type === Constraint.RIGHT_TO_RIGHT_OF) viewHolder.boundX2 = parentWidth;
-                    if (constraint.type === Constraint.RIGHT_TO_LEFT_OF) viewHolder.boundX2 = 0;
+                    if (constraint.type === Constraint.LEFT_TO_LEFT_OF) viewHolder.bounds.x1 = 0;
+                    if (constraint.type === Constraint.LEFT_TO_RIGHT_OF) viewHolder.bounds.x1 = parentWidth;
+                    if (constraint.type === Constraint.RIGHT_TO_RIGHT_OF) viewHolder.bounds.x2 = parentWidth;
+                    if (constraint.type === Constraint.RIGHT_TO_LEFT_OF) viewHolder.bounds.x2 = 0;
                 } else {
                     // Constrained to sibling view
-                    if (constraint.type === Constraint.LEFT_TO_LEFT_OF) viewHolder.boundX1 = targetHolder.boundX1;
-                    if (constraint.type === Constraint.LEFT_TO_RIGHT_OF) viewHolder.boundX1 = targetHolder.boundX2;
-                    if (constraint.type === Constraint.RIGHT_TO_RIGHT_OF) viewHolder.boundX2 = targetHolder.boundX2;
-                    if (constraint.type === Constraint.RIGHT_TO_LEFT_OF) viewHolder.boundX2 = targetHolder.boundX1;
+                    if (constraint.type === Constraint.LEFT_TO_LEFT_OF) viewHolder.bounds.x1 = targetHolder.bounds.x1;
+                    if (constraint.type === Constraint.LEFT_TO_RIGHT_OF) viewHolder.bounds.x1 = targetHolder.bounds.x2;
+                    if (constraint.type === Constraint.RIGHT_TO_RIGHT_OF) viewHolder.bounds.x2 = targetHolder.bounds.x2;
+                    if (constraint.type === Constraint.RIGHT_TO_LEFT_OF) viewHolder.bounds.x2 = targetHolder.bounds.x1;
                 }
             }
         }
 
-        // After defining the bounds of the view, use the width measure
-        // spec to determine the final position within it's bounds
-        const measureSpec = this.measureHorizontalBounds(viewHolder);
-        viewHolder.applyWidthBounds(measureSpec);
+        // Compute the final width measure spec from the bounds and constraints
+        const widthMeasureSpec = this.measureHorizontalBounds(viewHolder);
+        // Compute the final horizontal position of the view holder
+        viewHolder.applyWidthBounds(widthMeasureSpec);
     }
-
-    // console.log(this.viewHolders.map(viewHolder => viewHolder.toString()));
 };
 
 /**
@@ -76,17 +81,17 @@ ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
             return this.viewHolders.filter(holder => holder.id === identifier)[0] || PARENT_REF;
         }
         case "[object Array]": {
-            // If identifier is an array, return the holder of the ID which matches first...
+            // If identifier is an array, loop through all the targets
+            // and return the one which first matches the identifier
             for (const id of identifier) {
                 const viewHolder = this.viewHolders.filter(holder => holder.id === id)[0];
                 if (viewHolder) return viewHolder;
             }
 
-            // ...else return the parent ref
             return PARENT_REF;
         }
         default:
-            throw new Error(`Constraint value must either be a string or an array of strings`);
+            throw "Constraint value must either be a string or an array of strings";
     }
 };
 
@@ -96,36 +101,75 @@ ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
  * spec aids in centering or value distribution
  */
 ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) {
-    const { value: requestedWidth } = viewHolder.measureWidth(this.parent);
+    const { value: requestedWidth, spec: requestedSpec } = viewHolder.measureWidth(this.parent);
     const { width: parentWidth } = this.parent.getBoundingClientRect();
-    let leftBound = 0;
-    let rightBound = 0;
 
-    if (viewHolder.isLeftConstrained) {
-        const targetViewHolder = this.searchViewHolders(viewHolder.leftToLeftOf || viewHolder.leftToRightOf);
-        if (targetViewHolder === PARENT_REF && viewHolder.leftToLeftOf) leftBound = 0;
-        if (targetViewHolder === PARENT_REF && viewHolder.leftToRightOf) leftBound = parentWidth;
-        if (targetViewHolder !== PARENT_REF && viewHolder.leftToLeftOf) leftBound = targetViewHolder.x1;
-        if (targetViewHolder !== PARENT_REF && viewHolder.leftToRightOf) leftBound = targetViewHolder.x2;
-    }
+    const leftBound = (function(self) {
+        if (viewHolder.isLeftConstrained) {
+            const targetViewHolder = self.searchViewHolders(viewHolder.leftToLeftOf || viewHolder.leftToRightOf);
+            if (targetViewHolder === PARENT_REF && viewHolder.leftToLeftOf) return 0;
+            if (targetViewHolder === PARENT_REF && viewHolder.leftToRightOf) return parentWidth;
+            if (targetViewHolder !== PARENT_REF && viewHolder.leftToLeftOf) return targetViewHolder.bounds.x1;
+            if (targetViewHolder !== PARENT_REF && viewHolder.leftToRightOf) return targetViewHolder.bounds.x2;
+        } else return 0;
+    })(this);
 
-    if (viewHolder.isRightConstrained) {
-        const targetViewHolder = this.searchViewHolders(viewHolder.rightToRightOf || viewHolder.rightToLeftOf);
-        if (targetViewHolder === PARENT_REF && viewHolder.rightToRightOf) rightBound = parentWidth;
-        if (targetViewHolder === PARENT_REF && viewHolder.rightToLeftOf) rightBound = 0;
-        if (targetViewHolder !== PARENT_REF && viewHolder.rightToRightOf) rightBound = targetViewHolder.x2;
-        if (targetViewHolder !== PARENT_REF && viewHolder.rightToLeftOf) rightBound = targetViewHolder.x1;
-    }
+    const rightBound = (function(self) {
+        if (viewHolder.isRightConstrained) {
+            const targetViewHolder = self.searchViewHolders(viewHolder.rightToRightOf || viewHolder.rightToLeftOf);
+            if (targetViewHolder === PARENT_REF && viewHolder.rightToLeftOf) return 0;
+            if (targetViewHolder === PARENT_REF && viewHolder.rightToRightOf) return parentWidth;
+            if (targetViewHolder !== PARENT_REF && viewHolder.rightToLeftOf) return targetViewHolder.bounds.x1;
+            if (targetViewHolder !== PARENT_REF && viewHolder.rightToRightOf) return targetViewHolder.bounds.x2;
+        } else return 0;
+    })(this);
 
-    const availableWidth = (() => {
-        if (viewHolder.isFullyHorizontallyConstrained) {
+    const availableWidth = (function() {
+        if (viewHolder.isHorizontallyConstrained) {
             return Math.max(0, rightBound - leftBound);
         } else return parentWidth;
     })();
 
     if (requestedWidth <= availableWidth) {
-        if (requestedWidth === 0 && viewHolder.isFullyHorizontallyConstrained) {
-            return new MeasureSpec(MeasureSpec.UNSPECIFIED, requestedWidth);
+        if (requestedSpec === MeasureSpec.UNSPECIFIED) {
+            return new MeasureSpec(MeasureSpec.EXACTLY, availableWidth);
         } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedWidth);
-    } else return new MeasureSpec(MeasureSpec.AT_MOST, availableWidth);
+    } else return new MeasureSpec(MeasureSpec.EXACTLY, availableWidth);
 };
+
+/**
+ * Generates a measure spec for the vertical bounds of a view holder.
+ * When the bounds of a view holder is computed, the measure
+ * spec aids in centering or value distribution
+ */
+// ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
+//     const { value: requestedHeight } = viewHolder.measureHeight();
+//     let bottomBound = requestedHeight;
+//     let topBound = 0;
+//
+//     if (viewHolder.isTopConstrained) {
+//         const targetViewHolder = this.searchViewHolders(viewHolder.topToTopOf || viewHolder.topToBottomOf);
+//         if (targetViewHolder === PARENT_REF && viewHolder.topToBottomOf) topBound = this.parentHeightEstimate;
+//         if (targetViewHolder !== PARENT_REF && viewHolder.topToTopOf) topBound = targetViewHolder.bounds.y1;
+//         if (targetViewHolder !== PARENT_REF && viewHolder.topToBottomOf) topBound = targetViewHolder.bounds.y2;
+//     }
+//
+//     if (viewHolder.isBottomConstrained) {
+//         const targetViewHolder = this.searchViewHolders(viewHolder.bottomToBottomOf || viewHolder.bottomToTopOf);
+//         if (targetViewHolder === PARENT_REF && viewHolder.bottomToBottomOf) bottomBound = this.parentHeightEstimate;
+//         if (targetViewHolder !== PARENT_REF && viewHolder.bottomToBottomOf) bottomBound = targetViewHolder.bounds.y2;
+//         if (targetViewHolder !== PARENT_REF && viewHolder.bottomToTopOf) bottomBound = targetViewHolder.bounds.y1;
+//     }
+//
+//     const availableHeight = (() => {
+//         if (viewHolder.isFullyVerticallyConstrained) {
+//             return Math.max(0, bottomBound - topBound);
+//         } else return this.parentHeightEstimate;
+//     })();
+//
+//     if (requestedHeight <= availableHeight) {
+//         if (requestedHeight === 0 && viewHolder.isFullyVerticallyConstrained) {
+//             return new MeasureSpec(MeasureSpec.UNSPECIFIED, requestedHeight);
+//         } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedHeight);
+//     } else return new MeasureSpec(MeasureSpec.AT_MOST, availableHeight);
+// };
