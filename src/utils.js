@@ -1,5 +1,5 @@
 /**  A reference to the current parent of a view */
-export const PARENT = "__PARENT";
+export const PARENT = "_parent";
 
 /** An object to store constraint data */
 export function Constraint(type, target) {
