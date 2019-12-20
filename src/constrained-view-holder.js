@@ -31,6 +31,11 @@ export function ConstrainedViewHolder(view, ref) {
             return Math.max(0, Math.min(1, parseFloat(view.props.horizontalBias)));
         } else return 0.5;
     })();
+    this.verticalBias = (function() {
+        if (Object.prototype.toString.call(view.props.verticalBias) === "[object Number]") {
+            return Math.max(0, Math.min(1, parseFloat(view.props.verticalBias)));
+        } else return 0.5;
+    })();
 
     this.validateAttributes();
 
@@ -62,14 +67,14 @@ ConstrainedViewHolder.prototype.generateViewId = function() {
 
 /** Checks the validity of attributes defined for this view */
 ConstrainedViewHolder.prototype.validateAttributes = function() {
-    const strDimensions = [Dimension.MATCH_PARENT, Dimension.MATCH_CONTENT];
+    const stringDimensions = [Dimension.MATCH_PARENT, Dimension.MATCH_CONTENT];
 
     // Validate width value
     const propWidthValue = this.view.props.width;
     const propWidthType = Object.prototype.toString.call(propWidthValue);
     if (typeof propWidthValue === "undefined") throw `${this.id}: Width is required`;
     if (propWidthType === "[object Number]" && propWidthValue < 0) throw `${this.id}: Width cannot be less than 0`;
-    if (propWidthType === "[object String]" && !strDimensions.includes(propWidthValue))
+    if (propWidthType === "[object String]" && !stringDimensions.includes(propWidthValue))
         throw `${this.id}: Width must either be of "${Dimension.MATCH_PARENT}" or "${Dimension.MATCH_CONTENT}"`;
 
     // Validate height value
@@ -77,7 +82,7 @@ ConstrainedViewHolder.prototype.validateAttributes = function() {
     const propHeightType = Object.prototype.toString.call(propHeightValue);
     if (typeof propHeightValue === "undefined") throw `${this.id}: Height is required`;
     if (propHeightType === "[object Number]" && propHeightValue < 0) throw `${this.id}: Height is cannot be less than 0`;
-    if (propHeightType === "[object String]" && !strDimensions.includes(propHeightValue))
+    if (propHeightType === "[object String]" && !stringDimensions.includes(propHeightValue))
         throw `${this.id}: Height must either be "${Dimension.MATCH_PARENT}" or "${Dimension.MATCH_CONTENT}"`;
 
     // Check for conflicting constraints
@@ -119,12 +124,12 @@ ConstrainedViewHolder.prototype.measureHeight = function() {
 
     if (propHeight === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
     if (propHeight === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderHeight);
-    if (propHeightIsNumeric && propHeight === 0 && this.isFullyVerticallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
-    if (propHeightIsNumeric && propHeight === 0 && !this.isFullyVerticallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
+    if (propHeightIsNumeric && propHeight === 0 && this.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
+    if (propHeightIsNumeric && propHeight === 0 && !this.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
     if (propHeightIsNumeric && propHeight > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propHeight);
 };
 
-/** Computes the final position coordinates for this view from a given measure spec */
+/** Computes the final width position coordinates for this view from a given measure spec */
 ConstrainedViewHolder.prototype.applyWidthBounds = function(measureSpec) {
     const { value } = measureSpec;
     const leftBound = this.bounds.x1 + this.marginLeft;
@@ -132,9 +137,9 @@ ConstrainedViewHolder.prototype.applyWidthBounds = function(measureSpec) {
 
     if (this.isHorizontallyConstrained) {
         const widthBound = rightBound - leftBound;
-        const wiggleRoom = widthBound - value;
+        const wiggleRoom = Math.max(widthBound - value, 0);
         this.position.x1 = leftBound + this.horizontalBias * wiggleRoom;
-        this.position.x2 = leftBound + this.horizontalBias * wiggleRoom + value;
+        this.position.x2 = rightBound - this.horizontalBias * wiggleRoom;
     } else if (this.isLeftConstrained) {
         this.position.x1 = leftBound;
         this.position.x2 = leftBound + value;
@@ -145,10 +150,35 @@ ConstrainedViewHolder.prototype.applyWidthBounds = function(measureSpec) {
         this.position.x1 = this.marginLeft;
         this.position.x2 = this.marginLeft + value;
     }
+
+    // After positioning, reduce the bounds to fit exactly around the component
+    this.bounds.x1 = this.position.x1;
+    this.bounds.x2 = this.position.x2;
 };
 
-/** Computes the final position coordinates for this view from a given measure spec */
-// ConstrainedViewHolder.prototype.applyHeight = function(measureSpec) {
-//     const { value, spec } = measureSpec;
-//     const topBound = this.boundY1 + this.marginTop;
-// };
+/** Computes the final height position coordinates for this view from a given measure spec */
+ConstrainedViewHolder.prototype.applyHeightBounds = function(measureSpec) {
+    const { value } = measureSpec;
+    const topBound = this.bounds.y1 + this.marginTop;
+    const bottomBound = this.bounds.y2 - this.marginBottom;
+
+    if (this.isVerticallyConstrained) {
+        const heightBound = bottomBound - topBound;
+        const wiggleRoom = Math.max(heightBound - value, 0);
+        this.position.y1 = topBound + this.verticalBias * wiggleRoom;
+        this.position.y2 = topBound + this.verticalBias * wiggleRoom + value;
+    } else if (this.isTopConstrained) {
+        this.position.y1 = topBound;
+        this.position.y2 = topBound + value;
+    } else if (this.isBottomConstrained) {
+        this.position.y2 = bottomBound;
+        this.position.y1 = bottomBound - value;
+    } else {
+        this.position.y1 = this.marginTop;
+        this.position.y2 = this.marginTop + value;
+    }
+
+    // After positioning, reduce the bounds to fit exactly around the component
+    this.bounds.y1 = this.position.y1;
+    this.bounds.y2 = this.position.y2;
+};

@@ -8,7 +8,7 @@ import { isDefined } from "./utils";
  * ConstraintLayout which allows for positioning elements in a flat hierarchy
  * in a flexible manner with constraints.
  */
-export const ConstraintLayout = ({ height, children: _children, ...props }) => {
+export const ConstraintLayout = ({ width, height, children: _children, ...props }) => {
     if (!isDefined(height)) throw "<ConstraintLayout /> height is required";
 
     const children = Children.toArray(_children).filter(c => {
@@ -35,19 +35,19 @@ export const ConstraintLayout = ({ height, children: _children, ...props }) => {
     }, []);
 
     const onWindowResized = () => {
-        const { x: parentX } = parentRef.current.getBoundingClientRect();
+        const { x: parentX, y: parentY } = parentRef.current.getBoundingClientRect();
         viewSolver.current.update();
 
         for (const viewHolder of viewSolver.current.viewHolders) {
             viewHolder.ref.style.left = `${viewHolder.position.x1 - parentX}px`;
             viewHolder.ref.style.width = `${viewHolder.position.x2 - viewHolder.position.x1}px`;
-            // viewHolder.viewRef.style.top = `${viewHolder.y1 - parentY}px`;
-            // viewHolder.viewRef.style.height = `${viewHolder.y2 - viewHolder.y1}px`;
+            viewHolder.ref.style.top = `${viewHolder.position.y1 - parentY}px`;
+            viewHolder.ref.style.height = `${viewHolder.position.y2 - viewHolder.position.y1}px`;
         }
     };
 
     return (
-        <div ref={parentRef} className="constraint-layout" style={{ position: "relative!important", height }} {...props}>
+        <div ref={parentRef} className="constraint-layout" style={{ position: "relative", width, height }} {...props}>
             {children.map((child, index) => {
                 const refFn = node => (refs.current[index] = node);
                 return cloneElement(child, { _ref: refFn });
@@ -58,5 +58,6 @@ export const ConstraintLayout = ({ height, children: _children, ...props }) => {
 
 ConstraintLayout.propTypes = {
     children: PT.any,
-    height: PT.oneOfType([PT.string, PT.number])
+    width: PT.oneOfType([PT.string, PT.number]),
+    height: PT.oneOfType([PT.string, PT.number]).isRequired
 };

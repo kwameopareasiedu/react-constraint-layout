@@ -1,5 +1,5 @@
 import { ConstrainedViewHolder } from "./constrained-view-holder";
-import { Constraint, MeasureSpec, PARENT_REF } from "./utils";
+import { PARENT_REF, Constraint, MeasureSpec } from "./utils";
 
 /**
  * The ConstraintLayoutSolver is used by the ConstraintLayout to solve for the
@@ -24,9 +24,30 @@ ConstraintLayoutSolver.prototype.viewIdIsUnique = function(viewId) {
     return this.viewHolders.filter(holder => holder.id === viewId).length === 0;
 };
 
-/** Updates the state of the view holders */
-ConstraintLayoutSolver.prototype.update = function() {
-    this.updateWidth();
+/**
+ * For a identifier value, this searches the set of view holder objects and returns
+ * the first holder which matches the identifier. If the identifier is an array,
+ * each entry is used to search the set for a matching holder object.
+ */
+ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
+    switch (Object.prototype.toString.call(identifier)) {
+        case "[object String]": {
+            // If identifier is a string, return a holder with a matching id else return the parent ref
+            return this.viewHolders.filter(holder => holder.id === identifier)[0] || PARENT_REF;
+        }
+        case "[object Array]": {
+            // If identifier is an array, loop through all the targets
+            // and return the one which first matches the identifier
+            for (const id of identifier) {
+                const viewHolder = this.viewHolders.filter(holder => holder.id === id)[0];
+                if (viewHolder) return viewHolder;
+            }
+
+            return PARENT_REF;
+        }
+        default:
+            throw "Constraint value must either be a string or an array of strings";
+    }
 };
 
 /** Updates the state of the view holders */
@@ -69,29 +90,43 @@ ConstraintLayoutSolver.prototype.updateWidth = function() {
     }
 };
 
-/**
- * For a identifier value, this searches the set of view holder objects and returns
- * the first holder which matches the identifier. If the identifier is an array,
- * each entry is used to search the set for a matching holder object.
- */
-ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
-    switch (Object.prototype.toString.call(identifier)) {
-        case "[object String]": {
-            // If identifier is a string, return a holder with a matching id else return the parent ref
-            return this.viewHolders.filter(holder => holder.id === identifier)[0] || PARENT_REF;
-        }
-        case "[object Array]": {
-            // If identifier is an array, loop through all the targets
-            // and return the one which first matches the identifier
-            for (const id of identifier) {
-                const viewHolder = this.viewHolders.filter(holder => holder.id === id)[0];
-                if (viewHolder) return viewHolder;
-            }
+/** Updates the state of the view holders */
+ConstraintLayoutSolver.prototype.updateHeight = function() {
+    // Solve the height constraints for each view holder linearly. Because views
+    // are related to each other, preceeding views would have most likely been
+    // fully positioned prior to views that depend on them via constraints
+    const { height: parentHeight } = this.parent.getBoundingClientRect();
 
-            return PARENT_REF;
+    for (const viewHolder of this.viewHolders) {
+        // If it is not constrained vertically, use the parent bounds as its bounds...
+        if (!viewHolder.isTopConstrained && !viewHolder.isBottomConstrained) {
+            viewHolder.bounds.y1 = 0;
+            viewHolder.bounds.y2 = parentHeight;
+        } else {
+            // ...else use the constraints to determine the bounds of the view
+            for (const constraint of viewHolder.constraints) {
+                const targetHolder = this.searchViewHolders(constraint.target);
+
+                if (targetHolder === PARENT_REF) {
+                    // Constrained to parent view
+                    if (constraint.type === Constraint.TOP_TO_TOP_OF) viewHolder.bounds.y1 = 0;
+                    if (constraint.type === Constraint.TOP_TO_BOTTOM_OF) viewHolder.bounds.y1 = parentHeight;
+                    if (constraint.type === Constraint.BOTTOM_TO_BOTTOM_OF) viewHolder.bounds.y2 = parentHeight;
+                    if (constraint.type === Constraint.BOTTOM_TO_TOP_OF) viewHolder.bounds.y2 = 0;
+                } else {
+                    // Constrained to sibling view
+                    if (constraint.type === Constraint.TOP_TO_TOP_OF) viewHolder.bounds.y1 = targetHolder.bounds.y1;
+                    if (constraint.type === Constraint.TOP_TO_BOTTOM_OF) viewHolder.bounds.y1 = targetHolder.bounds.y2;
+                    if (constraint.type === Constraint.BOTTOM_TO_BOTTOM_OF) viewHolder.bounds.y2 = targetHolder.bounds.y2;
+                    if (constraint.type === Constraint.BOTTOM_TO_TOP_OF) viewHolder.bounds.y2 = targetHolder.bounds.y1;
+                }
+            }
         }
-        default:
-            throw "Constraint value must either be a string or an array of strings";
+
+        // Compute the final height measure spec from the bounds and constraints
+        const heightMeasureSpec = this.measureVerticalBounds(viewHolder);
+        // Compute the final vertical position of the view holder
+        viewHolder.applyHeightBounds(heightMeasureSpec);
     }
 };
 
@@ -142,34 +177,45 @@ ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) 
  * When the bounds of a view holder is computed, the measure
  * spec aids in centering or value distribution
  */
-// ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
-//     const { value: requestedHeight } = viewHolder.measureHeight();
-//     let bottomBound = requestedHeight;
-//     let topBound = 0;
-//
-//     if (viewHolder.isTopConstrained) {
-//         const targetViewHolder = this.searchViewHolders(viewHolder.topToTopOf || viewHolder.topToBottomOf);
-//         if (targetViewHolder === PARENT_REF && viewHolder.topToBottomOf) topBound = this.parentHeightEstimate;
-//         if (targetViewHolder !== PARENT_REF && viewHolder.topToTopOf) topBound = targetViewHolder.bounds.y1;
-//         if (targetViewHolder !== PARENT_REF && viewHolder.topToBottomOf) topBound = targetViewHolder.bounds.y2;
-//     }
-//
-//     if (viewHolder.isBottomConstrained) {
-//         const targetViewHolder = this.searchViewHolders(viewHolder.bottomToBottomOf || viewHolder.bottomToTopOf);
-//         if (targetViewHolder === PARENT_REF && viewHolder.bottomToBottomOf) bottomBound = this.parentHeightEstimate;
-//         if (targetViewHolder !== PARENT_REF && viewHolder.bottomToBottomOf) bottomBound = targetViewHolder.bounds.y2;
-//         if (targetViewHolder !== PARENT_REF && viewHolder.bottomToTopOf) bottomBound = targetViewHolder.bounds.y1;
-//     }
-//
-//     const availableHeight = (() => {
-//         if (viewHolder.isFullyVerticallyConstrained) {
-//             return Math.max(0, bottomBound - topBound);
-//         } else return this.parentHeightEstimate;
-//     })();
-//
-//     if (requestedHeight <= availableHeight) {
-//         if (requestedHeight === 0 && viewHolder.isFullyVerticallyConstrained) {
-//             return new MeasureSpec(MeasureSpec.UNSPECIFIED, requestedHeight);
-//         } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedHeight);
-//     } else return new MeasureSpec(MeasureSpec.AT_MOST, availableHeight);
-// };
+ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
+    const { value: requestedHeight, spec: requestedSpec } = viewHolder.measureHeight(this.parent);
+    const { height: parentHeight } = this.parent.getBoundingClientRect();
+
+    const topBound = (function(self) {
+        if (viewHolder.isTopConstrained) {
+            const targetViewHolder = self.searchViewHolders(viewHolder.topToTopOf || viewHolder.topToBottomOf);
+            if (targetViewHolder === PARENT_REF && viewHolder.topToTopOf) return 0;
+            if (targetViewHolder === PARENT_REF && viewHolder.topToBottomOf) return parentHeight;
+            if (targetViewHolder !== PARENT_REF && viewHolder.topToTopOf) return targetViewHolder.bounds.y1;
+            if (targetViewHolder !== PARENT_REF && viewHolder.topToBottomOf) return targetViewHolder.bounds.y2;
+        } else return 0;
+    })(this);
+
+    const bottomBound = (function(self) {
+        if (viewHolder.isBottomConstrained) {
+            const targetViewHolder = self.searchViewHolders(viewHolder.bottomToBottomOf || viewHolder.bottomToTopOf);
+            if (targetViewHolder === PARENT_REF && viewHolder.bottomToTopOf) return 0;
+            if (targetViewHolder === PARENT_REF && viewHolder.bottomToBottomOf) return parentHeight;
+            if (targetViewHolder !== PARENT_REF && viewHolder.bottomToTopOf) return targetViewHolder.bounds.y1;
+            if (targetViewHolder !== PARENT_REF && viewHolder.bottomToBottomOf) return targetViewHolder.bounds.y2;
+        } else return 0;
+    })(this);
+
+    const availableHeight = (function() {
+        if (viewHolder.isVerticallyConstrained) {
+            return Math.max(0, bottomBound - topBound);
+        } else return parentHeight;
+    })();
+
+    if (requestedHeight <= availableHeight) {
+        if (requestedSpec === MeasureSpec.UNSPECIFIED) {
+            return new MeasureSpec(MeasureSpec.EXACTLY, availableHeight);
+        } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedHeight);
+    } else return new MeasureSpec(MeasureSpec.EXACTLY, availableHeight);
+};
+
+/** Updates the state of the view holders */
+ConstraintLayoutSolver.prototype.update = function() {
+    this.updateWidth();
+    this.updateHeight();
+};
