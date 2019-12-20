@@ -1,5 +1,5 @@
 import { ConstrainedViewHolder } from "./constrained-view-holder";
-import { PARENT_REF, Constraint, MeasureSpec } from "./utils";
+import { PARENT_REF, Constraint, MeasureSpec, Dimension } from "./utils";
 
 /**
  * The ConstraintLayoutSolver is used by the ConstraintLayout to solve for the
@@ -18,6 +18,12 @@ export function ConstraintLayoutSolver(views, refs, parent) {
         } else this.viewHolders.push(viewHolder);
     }
 }
+
+/** Updates the state of the view holders */
+ConstraintLayoutSolver.prototype.update = function() {
+	this.updateWidth();
+	this.updateHeight();
+};
 
 /** Checks if a viewId is unique in the list of views */
 ConstraintLayoutSolver.prototype.viewIdIsUnique = function(viewId) {
@@ -84,9 +90,31 @@ ConstraintLayoutSolver.prototype.updateWidth = function() {
         }
 
         // Compute the final width measure spec from the bounds and constraints
-        const widthMeasureSpec = this.measureHorizontalBounds(viewHolder);
+        const { value } = this.measureHorizontalBounds(viewHolder);
+
         // Compute the final horizontal position of the view holder
-        viewHolder.applyWidthBounds(widthMeasureSpec);
+        const leftBound = viewHolder.bounds.x1 + viewHolder.marginLeft;
+        const rightBound = viewHolder.bounds.x2 - viewHolder.marginRight;
+
+        if (viewHolder.isHorizontallyConstrained) {
+            const widthBound = rightBound - leftBound;
+            const wiggleRoom = Math.max(widthBound - value, 0);
+            viewHolder.position.x1 = leftBound + viewHolder.horizontalBias * wiggleRoom;
+            viewHolder.position.x2 = rightBound - viewHolder.horizontalBias * wiggleRoom;
+        } else if (viewHolder.isLeftConstrained) {
+            viewHolder.position.x1 = leftBound;
+            viewHolder.position.x2 = leftBound + value;
+        } else if (viewHolder.isRightConstrained) {
+            viewHolder.position.x2 = rightBound;
+            viewHolder.position.x1 = rightBound - value;
+        } else {
+            viewHolder.position.x1 = viewHolder.marginLeft;
+            viewHolder.position.x2 = viewHolder.marginLeft + value;
+        }
+
+        // After positioning, reduce the bounds to fit exactly around the component
+        viewHolder.bounds.x1 = viewHolder.position.x1;
+        viewHolder.bounds.x2 = viewHolder.position.x2;
     }
 };
 
@@ -124,9 +152,31 @@ ConstraintLayoutSolver.prototype.updateHeight = function() {
         }
 
         // Compute the final height measure spec from the bounds and constraints
-        const heightMeasureSpec = this.measureVerticalBounds(viewHolder);
+        const { value } = this.measureVerticalBounds(viewHolder);
+
         // Compute the final vertical position of the view holder
-        viewHolder.applyHeightBounds(heightMeasureSpec);
+        const topBound = viewHolder.bounds.y1 + viewHolder.marginTop;
+        const bottomBound = viewHolder.bounds.y2 - viewHolder.marginBottom;
+
+        if (viewHolder.isVerticallyConstrained) {
+            const heightBound = bottomBound - topBound;
+            const wiggleRoom = Math.max(heightBound - value, 0);
+            viewHolder.position.y1 = topBound + viewHolder.verticalBias * wiggleRoom;
+            viewHolder.position.y2 = topBound + viewHolder.verticalBias * wiggleRoom + value;
+        } else if (viewHolder.isTopConstrained) {
+            viewHolder.position.y1 = topBound;
+            viewHolder.position.y2 = topBound + value;
+        } else if (viewHolder.isBottomConstrained) {
+            viewHolder.position.y2 = bottomBound;
+            viewHolder.position.y1 = bottomBound - value;
+        } else {
+            viewHolder.position.y1 = viewHolder.marginTop;
+            viewHolder.position.y2 = viewHolder.marginTop + value;
+        }
+
+        // After positioning, reduce the bounds to fit exactly around the component
+        viewHolder.bounds.y1 = viewHolder.position.y1;
+        viewHolder.bounds.y2 = viewHolder.position.y2;
     }
 };
 
@@ -136,8 +186,20 @@ ConstraintLayoutSolver.prototype.updateHeight = function() {
  * spec aids in centering or value distribution
  */
 ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) {
-    const { value: requestedWidth, spec: requestedSpec } = viewHolder.measureWidth(this.parent);
     const { width: parentWidth } = this.parent.getBoundingClientRect();
+
+    // Use the view holder's props to determine the requested width value
+    const { value: requestedWidth, spec: requestedSpec } = (function() {
+        const { width: propWidth } = viewHolder.view.props;
+        const { width: renderWidth } = viewHolder.ref.getBoundingClientRect();
+        const propWidthIsNumeric = Object.prototype.toString.call(propWidth) === "[object Number]";
+
+        if (propWidth === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
+        if (propWidth === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth);
+        if (propWidthIsNumeric && propWidth === 0 && viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
+        if (propWidthIsNumeric && propWidth === 0 && !viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
+        if (propWidthIsNumeric && propWidth > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propWidth);
+    })();
 
     const leftBound = (function(self) {
         if (viewHolder.isLeftConstrained) {
@@ -178,8 +240,20 @@ ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) 
  * spec aids in centering or value distribution
  */
 ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
-    const { value: requestedHeight, spec: requestedSpec } = viewHolder.measureHeight(this.parent);
     const { height: parentHeight } = this.parent.getBoundingClientRect();
+
+    // Use the view holder's props to determine the requested height value
+    const { value: requestedHeight, spec: requestedSpec } = function() {
+        const { height: propHeight } = viewHolder.view.props;
+        const { height: renderHeight } = viewHolder.ref.getBoundingClientRect();
+        const propHeightIsNumeric = Object.prototype.toString.call(propHeight) === "[object Number]";
+
+        if (propHeight === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentHeight);
+        if (propHeight === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderHeight);
+        if (propHeightIsNumeric && propHeight === 0 && viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
+        if (propHeightIsNumeric && propHeight === 0 && !viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
+        if (propHeightIsNumeric && propHeight > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propHeight);
+    };
 
     const topBound = (function(self) {
         if (viewHolder.isTopConstrained) {
@@ -212,10 +286,4 @@ ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
             return new MeasureSpec(MeasureSpec.EXACTLY, availableHeight);
         } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedHeight);
     } else return new MeasureSpec(MeasureSpec.EXACTLY, availableHeight);
-};
-
-/** Updates the state of the view holders */
-ConstraintLayoutSolver.prototype.update = function() {
-    this.updateWidth();
-    this.updateHeight();
 };

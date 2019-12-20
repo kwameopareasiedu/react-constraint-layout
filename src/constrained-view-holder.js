@@ -1,4 +1,4 @@
-import { Constraint, MeasureSpec, Dimension } from "./utils";
+import { Constraint, Dimension } from "./utils";
 
 /**
  * An holder representation of a ConstrainedView. Also contains the coordinate pairs
@@ -100,85 +100,4 @@ ConstrainedViewHolder.prototype.validateAttributes = function() {
     if (this.topToBottomOf === this.id) throw `${this.id}: Cannot be constrained to self on "topToBottomOf"`;
     if (this.bottomToBottomOf === this.id) throw `${this.id}: Cannot be constrained to self on "bottomToBottomOf"`;
     if (this.bottomToTopOf === this.id) throw `${this.id}: Cannot be constrained to self on "bottomToTopOf"`;
-};
-
-/** Returns the measure spec for the view width */
-ConstrainedViewHolder.prototype.measureWidth = function(parent) {
-    const { width: propWidth } = this.view.props;
-    const { width: renderWidth } = this.ref.getBoundingClientRect();
-    const { width: parentWidth } = parent.getBoundingClientRect();
-    const propWidthIsNumeric = Object.prototype.toString.call(propWidth) === "[object Number]";
-
-    if (propWidth === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
-    if (propWidth === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth);
-    if (propWidthIsNumeric && propWidth === 0 && this.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
-    if (propWidthIsNumeric && propWidth === 0 && !this.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
-    if (propWidthIsNumeric && propWidth > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propWidth);
-};
-
-/** Returns the measure spec for the view height */
-ConstrainedViewHolder.prototype.measureHeight = function() {
-    const { height: propHeight } = this.view.props;
-    const { height: renderHeight } = this.ref.getBoundingClientRect();
-    const propHeightIsNumeric = Object.prototype.toString.call(propHeight) === "[object Number]";
-
-    if (propHeight === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
-    if (propHeight === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderHeight);
-    if (propHeightIsNumeric && propHeight === 0 && this.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
-    if (propHeightIsNumeric && propHeight === 0 && !this.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
-    if (propHeightIsNumeric && propHeight > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propHeight);
-};
-
-/** Computes the final width position coordinates for this view from a given measure spec */
-ConstrainedViewHolder.prototype.applyWidthBounds = function(measureSpec) {
-    const { value } = measureSpec;
-    const leftBound = this.bounds.x1 + this.marginLeft;
-    const rightBound = this.bounds.x2 - this.marginRight;
-
-    if (this.isHorizontallyConstrained) {
-        const widthBound = rightBound - leftBound;
-        const wiggleRoom = Math.max(widthBound - value, 0);
-        this.position.x1 = leftBound + this.horizontalBias * wiggleRoom;
-        this.position.x2 = rightBound - this.horizontalBias * wiggleRoom;
-    } else if (this.isLeftConstrained) {
-        this.position.x1 = leftBound;
-        this.position.x2 = leftBound + value;
-    } else if (this.isRightConstrained) {
-        this.position.x2 = rightBound;
-        this.position.x1 = rightBound - value;
-    } else {
-        this.position.x1 = this.marginLeft;
-        this.position.x2 = this.marginLeft + value;
-    }
-
-    // After positioning, reduce the bounds to fit exactly around the component
-    this.bounds.x1 = this.position.x1;
-    this.bounds.x2 = this.position.x2;
-};
-
-/** Computes the final height position coordinates for this view from a given measure spec */
-ConstrainedViewHolder.prototype.applyHeightBounds = function(measureSpec) {
-    const { value } = measureSpec;
-    const topBound = this.bounds.y1 + this.marginTop;
-    const bottomBound = this.bounds.y2 - this.marginBottom;
-
-    if (this.isVerticallyConstrained) {
-        const heightBound = bottomBound - topBound;
-        const wiggleRoom = Math.max(heightBound - value, 0);
-        this.position.y1 = topBound + this.verticalBias * wiggleRoom;
-        this.position.y2 = topBound + this.verticalBias * wiggleRoom + value;
-    } else if (this.isTopConstrained) {
-        this.position.y1 = topBound;
-        this.position.y2 = topBound + value;
-    } else if (this.isBottomConstrained) {
-        this.position.y2 = bottomBound;
-        this.position.y1 = bottomBound - value;
-    } else {
-        this.position.y1 = this.marginTop;
-        this.position.y2 = this.marginTop + value;
-    }
-
-    // After positioning, reduce the bounds to fit exactly around the component
-    this.bounds.y1 = this.position.y1;
-    this.bounds.y2 = this.position.y2;
 };
