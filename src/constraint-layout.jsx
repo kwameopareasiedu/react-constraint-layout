@@ -8,7 +8,7 @@ import { isDefined } from "./utils";
  * ConstraintLayout which allows for positioning elements in a flat hierarchy
  * in a flexible manner with constraints.
  */
-export const ConstraintLayout = ({ width, height, children: _children, ...props }) => {
+export const ConstraintLayout = ({ width, height, children: _children, style: _style, ...props }) => {
     if (!isDefined(height)) throw "<ConstraintLayout /> height is required";
 
     const children = Children.toArray(_children).filter(c => {
@@ -47,7 +47,7 @@ export const ConstraintLayout = ({ width, height, children: _children, ...props 
     };
 
     return (
-        <div ref={parentRef} className="constraint-layout" style={{ position: "relative", width, height }} {...props}>
+        <div ref={parentRef} className="constraint-layout" style={{ ..._style, position: "relative", width, height }} {...props}>
             {children.map((child, index) => {
                 const refFn = node => (refs.current[index] = node);
                 return cloneElement(child, { _ref: refFn });
@@ -59,5 +59,6 @@ export const ConstraintLayout = ({ width, height, children: _children, ...props 
 ConstraintLayout.propTypes = {
     children: PT.any,
     width: PT.oneOfType([PT.string, PT.number]),
-    height: PT.oneOfType([PT.string, PT.number]).isRequired
+    height: PT.oneOfType([PT.string, PT.number]).isRequired,
+    style: PT.object
 };

@@ -1,5 +1,5 @@
 import { ConstrainedViewHolder } from "./constrained-view-holder";
-import { PARENT_REF, Constraint, MeasureSpec, Dimension } from "./utils";
+import { PARENT, Constraint, MeasureSpec, Dimension } from "./utils";
 
 /**
  * The ConstraintLayoutSolver is used by the ConstraintLayout to solve for the
@@ -39,7 +39,7 @@ ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
     switch (Object.prototype.toString.call(identifier)) {
         case "[object String]": {
             // If identifier is a string, return a holder with a matching id else return the parent ref
-            return this.viewHolders.filter(holder => holder.id === identifier)[0] || PARENT_REF;
+            return this.viewHolders.filter(holder => holder.id === identifier)[0] || PARENT;
         }
         case "[object Array]": {
             // If identifier is an array, loop through all the targets
@@ -49,7 +49,7 @@ ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
                 if (viewHolder) return viewHolder;
             }
 
-            return PARENT_REF;
+            return PARENT;
         }
         default:
             throw "Constraint value must either be a string or an array of strings";
@@ -73,7 +73,7 @@ ConstraintLayoutSolver.prototype.updateWidth = function() {
             for (const constraint of viewHolder.constraints) {
                 const targetHolder = this.searchViewHolders(constraint.target);
 
-                if (targetHolder === PARENT_REF) {
+                if (targetHolder === PARENT) {
                     // Constrained to parent view
                     if (constraint.type === Constraint.LEFT_TO_LEFT_OF) viewHolder.bounds.x1 = 0;
                     if (constraint.type === Constraint.LEFT_TO_RIGHT_OF) viewHolder.bounds.x1 = parentWidth;
@@ -142,20 +142,20 @@ ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) 
     const leftBound = (function(self) {
         if (viewHolder.isLeftConstrained) {
             const targetViewHolder = self.searchViewHolders(viewHolder.leftToLeftOf || viewHolder.leftToRightOf);
-            if (targetViewHolder === PARENT_REF && viewHolder.leftToLeftOf) return 0;
-            if (targetViewHolder === PARENT_REF && viewHolder.leftToRightOf) return parentWidth;
-            if (targetViewHolder !== PARENT_REF && viewHolder.leftToLeftOf) return targetViewHolder.bounds.x1;
-            if (targetViewHolder !== PARENT_REF && viewHolder.leftToRightOf) return targetViewHolder.bounds.x2;
+            if (targetViewHolder === PARENT && viewHolder.leftToLeftOf) return 0;
+            if (targetViewHolder === PARENT && viewHolder.leftToRightOf) return parentWidth;
+            if (targetViewHolder !== PARENT && viewHolder.leftToLeftOf) return targetViewHolder.bounds.x1;
+            if (targetViewHolder !== PARENT && viewHolder.leftToRightOf) return targetViewHolder.bounds.x2;
         } else return 0;
     })(this);
 
     const rightBound = (function(self) {
         if (viewHolder.isRightConstrained) {
             const targetViewHolder = self.searchViewHolders(viewHolder.rightToRightOf || viewHolder.rightToLeftOf);
-            if (targetViewHolder === PARENT_REF && viewHolder.rightToLeftOf) return 0;
-            if (targetViewHolder === PARENT_REF && viewHolder.rightToRightOf) return parentWidth;
-            if (targetViewHolder !== PARENT_REF && viewHolder.rightToLeftOf) return targetViewHolder.bounds.x1;
-            if (targetViewHolder !== PARENT_REF && viewHolder.rightToRightOf) return targetViewHolder.bounds.x2;
+            if (targetViewHolder === PARENT && viewHolder.rightToLeftOf) return 0;
+            if (targetViewHolder === PARENT && viewHolder.rightToRightOf) return parentWidth;
+            if (targetViewHolder !== PARENT && viewHolder.rightToLeftOf) return targetViewHolder.bounds.x1;
+            if (targetViewHolder !== PARENT && viewHolder.rightToRightOf) return targetViewHolder.bounds.x2;
         } else return 0;
     })(this);
 
@@ -189,7 +189,7 @@ ConstraintLayoutSolver.prototype.updateHeight = function() {
             for (const constraint of viewHolder.constraints) {
                 const targetHolder = this.searchViewHolders(constraint.target);
 
-                if (targetHolder === PARENT_REF) {
+                if (targetHolder === PARENT) {
                     // Constrained to parent view
                     if (constraint.type === Constraint.TOP_TO_TOP_OF) viewHolder.bounds.y1 = 0;
                     if (constraint.type === Constraint.TOP_TO_BOTTOM_OF) viewHolder.bounds.y1 = parentHeight;
@@ -258,20 +258,20 @@ ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
     const topBound = (function(self) {
         if (viewHolder.isTopConstrained) {
             const targetViewHolder = self.searchViewHolders(viewHolder.topToTopOf || viewHolder.topToBottomOf);
-            if (targetViewHolder === PARENT_REF && viewHolder.topToTopOf) return 0;
-            if (targetViewHolder === PARENT_REF && viewHolder.topToBottomOf) return parentHeight;
-            if (targetViewHolder !== PARENT_REF && viewHolder.topToTopOf) return targetViewHolder.bounds.y1;
-            if (targetViewHolder !== PARENT_REF && viewHolder.topToBottomOf) return targetViewHolder.bounds.y2;
+            if (targetViewHolder === PARENT && viewHolder.topToTopOf) return 0;
+            if (targetViewHolder === PARENT && viewHolder.topToBottomOf) return parentHeight;
+            if (targetViewHolder !== PARENT && viewHolder.topToTopOf) return targetViewHolder.bounds.y1;
+            if (targetViewHolder !== PARENT && viewHolder.topToBottomOf) return targetViewHolder.bounds.y2;
         } else return 0;
     })(this);
 
     const bottomBound = (function(self) {
         if (viewHolder.isBottomConstrained) {
             const targetViewHolder = self.searchViewHolders(viewHolder.bottomToBottomOf || viewHolder.bottomToTopOf);
-            if (targetViewHolder === PARENT_REF && viewHolder.bottomToTopOf) return 0;
-            if (targetViewHolder === PARENT_REF && viewHolder.bottomToBottomOf) return parentHeight;
-            if (targetViewHolder !== PARENT_REF && viewHolder.bottomToTopOf) return targetViewHolder.bounds.y1;
-            if (targetViewHolder !== PARENT_REF && viewHolder.bottomToBottomOf) return targetViewHolder.bounds.y2;
+            if (targetViewHolder === PARENT && viewHolder.bottomToTopOf) return 0;
+            if (targetViewHolder === PARENT && viewHolder.bottomToBottomOf) return parentHeight;
+            if (targetViewHolder !== PARENT && viewHolder.bottomToTopOf) return targetViewHolder.bounds.y1;
+            if (targetViewHolder !== PARENT && viewHolder.bottomToBottomOf) return targetViewHolder.bounds.y2;
         } else return 0;
     })(this);
 
