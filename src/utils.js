@@ -43,13 +43,5 @@ export const Dimension = {
     MATCH_PARENT: "match-parent"
 };
 
-/** Supported visibility constants of a ConstrainedView */
-export const Visibility = {
-    /** Indicates that a view should take part the in the layout computation */
-    VISIBLE: "visible",
-    /** Indicates that a view should be ignored from the layout computation and not rendered */
-    HIDDEN: "hidden"
-};
-
 /** Determines if a specified value is defined (I.e. not undefined or null) */
 export const isDefined = value => ![undefined, null].includes(value);

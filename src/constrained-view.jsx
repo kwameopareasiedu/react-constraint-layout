@@ -1,6 +1,5 @@
 import React from "react";
 import PT from "prop-types";
-import { Visibility } from "./utils";
 
 /** Represents a direct child of the ConstraintLayout */
 export const ConstrainedView = ({ _ref, children, id, as: Component = "div", style: _style, ...props }) => {
@@ -30,7 +29,6 @@ ConstrainedView.propTypes = {
     topToBottomOf: PT.oneOfType([PT.string, PT.array]),
     bottomToBottomOf: PT.oneOfType([PT.string, PT.array]),
     bottomToTopOf: PT.oneOfType([PT.string, PT.array]),
-    visibility: PT.oneOf([Visibility.VISIBLE, Visibility.HIDDEN]),
     horizontalBias: PT.number,
     verticalBias: PT.number,
     style: PT.object,
