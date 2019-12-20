@@ -3,7 +3,7 @@ import PT from "prop-types";
 
 /** Represents a direct child of the ConstraintLayout */
 export const ConstrainedView = ({ _ref, children, id, as: Component = "div", style: _style, ...props }) => {
-    const style = { ..._style, position: "absolute", width: "auto", margin: "0", overflow: "hidden", boxSizing: "border-box" };
+    const style = { ..._style, position: "absolute", display: "block", width: "auto", margin: "0", overflow: "hidden", boxSizing: "border-box" };
 
     return (
         <Component {...props} ref={_ref} id={id} style={style}>
@@ -15,8 +15,8 @@ export const ConstrainedView = ({ _ref, children, id, as: Component = "div", sty
 ConstrainedView.propTypes = {
     as: PT.any,
     id: PT.string,
-    width: PT.oneOfType([PT.number, PT.string]).isRequired,
-    height: PT.oneOfType([PT.number, PT.string]).isRequired,
+    width: PT.oneOfType([PT.number, PT.string]),
+    height: PT.oneOfType([PT.number, PT.string]),
     marginTop: PT.oneOfType([PT.number, PT.string]),
     marginLeft: PT.oneOfType([PT.number, PT.string]),
     marginRight: PT.oneOfType([PT.number, PT.string]),

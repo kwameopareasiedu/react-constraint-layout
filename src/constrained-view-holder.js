@@ -41,9 +41,9 @@ export function ConstrainedViewHolder(view, ref) {
 
     this.bounds = { x1: 0, y1: 0, x2: 0, y2: 0 };
     this.position = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    this.isTopConstrained = !!this.topToTopOf || !!this.topToBottomOf;
     this.isLeftConstrained = !!this.leftToLeftOf || !!this.leftToRightOf;
     this.isRightConstrained = !!this.rightToRightOf || !!this.rightToLeftOf;
-    this.isTopConstrained = !!this.topToTopOf || !!this.topToBottomOf;
     this.isBottomConstrained = !!this.bottomToBottomOf || !!this.bottomToTopOf;
     this.isHorizontallyConstrained = this.isLeftConstrained && this.isRightConstrained;
     this.isVerticallyConstrained = this.isTopConstrained && this.isBottomConstrained;
@@ -72,7 +72,7 @@ ConstrainedViewHolder.prototype.validateAttributes = function() {
     // Validate width value
     const propWidthValue = this.view.props.width;
     const propWidthType = Object.prototype.toString.call(propWidthValue);
-    if (typeof propWidthValue === "undefined") throw `${this.id}: Width is required`;
+    if (typeof propWidthValue === "undefined") console.warn(`${this.id}: Width not specified. Default to 0px`);
     if (propWidthType === "[object Number]" && propWidthValue < 0) throw `${this.id}: Width cannot be less than 0`;
     if (propWidthType === "[object String]" && !stringDimensions.includes(propWidthValue))
         throw `${this.id}: Width must either be of "${Dimension.MATCH_PARENT}" or "${Dimension.MATCH_CONTENT}"`;
@@ -80,7 +80,7 @@ ConstrainedViewHolder.prototype.validateAttributes = function() {
     // Validate height value
     const propHeightValue = this.view.props.height;
     const propHeightType = Object.prototype.toString.call(propHeightValue);
-    if (typeof propHeightValue === "undefined") throw `${this.id}: Height is required`;
+    if (typeof propHeightValue === "undefined") console.warn(`${this.id}: Height not specified. Default to 0px`);
     if (propHeightType === "[object Number]" && propHeightValue < 0) throw `${this.id}: Height is cannot be less than 0`;
     if (propHeightType === "[object String]" && !stringDimensions.includes(propHeightValue))
         throw `${this.id}: Height must either be "${Dimension.MATCH_PARENT}" or "${Dimension.MATCH_CONTENT}"`;

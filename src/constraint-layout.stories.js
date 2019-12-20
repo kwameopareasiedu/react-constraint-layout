@@ -1,7 +1,8 @@
 import React from "react";
 import { PARENT } from "./utils";
-import { ConstraintLayout } from "././constraint-layout";
+import { action } from "@storybook/addon-actions";
 import { ConstrainedView } from "./constrained-view";
+import { ConstraintLayout } from "././constraint-layout";
 import ReactLogo from "../preview-img/react-logo.jpg";
 
 // noinspection JSUnusedGlobalSymbols
@@ -41,7 +42,6 @@ export const preview1 = () => {
             <ConstrainedView
                 as="h5"
                 id="view3"
-                width={0}
                 height={50}
                 topToBottomOf="view1"
                 leftToRightOf="view2"
@@ -53,7 +53,6 @@ export const preview1 = () => {
 
             <ConstrainedView
                 id="view4"
-                width={0}
                 height={40}
                 as="button"
                 className="btn btn-primary btn-block"
@@ -68,7 +67,6 @@ export const preview1 = () => {
 
             <ConstrainedView
                 id="view5"
-                width={0}
                 height={40}
                 as="button"
                 className="btn btn-warning btn-block"
@@ -83,7 +81,6 @@ export const preview1 = () => {
             <ConstrainedView
                 id="view6"
                 height={1}
-                width={0}
                 topToBottomOf="view4"
                 leftToLeftOf={PARENT}
                 rightToRightOf={PARENT}
@@ -115,51 +112,27 @@ export const preview2 = () => {
         <ConstraintLayout width="320px" height="450px" style={{ backgroundColor: "#f3f3f3" }}>
             <ConstrainedView
                 id="topbar"
-                width="match-parent"
                 height={56}
-                leftToLeftOf={PARENT}
-                rightToRightOf={PARENT}
-                style={{
-                    color: "white",
-                    backgroundColor: "#4e1ebb",
-                    padding: "15px 0 0 15px"
-                }}>
+                width="match-parent"
+                style={{ color: "white", backgroundColor: "#4e1ebb", padding: "15px 0 0 15px" }}>
                 React Web
             </ConstrainedView>
 
-            <ConstrainedView
-                id="logo"
-                height={150}
-                width="match-parent"
-                leftToLeftOf="parent"
-                rightToRightOf="parent"
-                topToBottomOf="topbar"
-                style={{ boxShadow: "2px 2px 40px -24px #999" }}>
-                <img
-                    src={ReactLogo}
-                    alt="React logo"
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover"
-                    }}
-                />
+            <ConstrainedView id="logo" height={150} width="match-parent" topToBottomOf="topbar" style={{ boxShadow: "2px 2px 8px #999" }}>
+                <img src={ReactLogo} alt="React logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </ConstrainedView>
 
             <ConstrainedView
                 id="fab"
                 width={48}
                 height={48}
+                as="button"
+                marginTop="-24px"
+                marginRight="24px"
                 topToBottomOf="logo"
                 rightToRightOf={PARENT}
-                marginRight="24px"
-                marginTop="-24px"
-                style={{
-                    backgroundColor: "#d9d",
-                    borderRadius: "24px",
-                    padding: "12px 15px",
-                    color: "white"
-                }}>
+                onClick={() => action("Button click")("Clicked")}
+                style={{ backgroundColor: "#d9d", borderRadius: "24px", padding: "12px 15px", color: "white", outline: "none", border: "none" }}>
                 <i className="fa fa-star" />
             </ConstrainedView>
 
@@ -167,9 +140,9 @@ export const preview2 = () => {
                 id="phone"
                 width={48}
                 height={48}
+                marginTop="15px"
                 topToBottomOf="fab"
                 leftToLeftOf={PARENT}
-                marginTop="15px"
                 style={{ padding: "0 19px" }}>
                 <i className="fas fa-mobile-alt" style={{ color: "#4e1ebb" }} />
             </ConstrainedView>
@@ -178,21 +151,14 @@ export const preview2 = () => {
                 id="message"
                 width={48}
                 height={48}
+                marginRight="24px"
                 topToTopOf="phone"
                 rightToRightOf={PARENT}
-                marginRight="24px"
                 style={{ padding: "0 15px" }}>
                 <i className="fas fa-comment-dots" style={{ color: "#1ebbad" }} />
             </ConstrainedView>
 
-            <ConstrainedView
-                id="phone-number"
-                width={0}
-                height={50}
-                leftToRightOf="phone"
-                rightToLeftOf="message"
-                topToTopOf="phone"
-                marginLeft="24px">
+            <ConstrainedView id="phone-number" height={50} leftToRightOf="phone" rightToLeftOf="message" topToTopOf="phone" marginLeft="24px">
                 (650) 555-1234 <br />
                 <small>Google voice</small>
             </ConstrainedView>
@@ -201,36 +167,28 @@ export const preview2 = () => {
                 id="message2"
                 width={48}
                 height={48}
-                topToBottomOf="phone-number"
-                rightToRightOf={PARENT}
                 marginTop="16px"
                 marginRight="24px"
+                rightToRightOf={PARENT}
+                topToBottomOf="phone-number"
                 style={{ padding: "0 15px" }}>
                 <i className="fas fa-comment-dots" style={{ color: "#1ebbad" }} />
             </ConstrainedView>
 
-            <ConstrainedView
-                id="phone-number2"
-                width={0}
-                height={50}
-                leftToRightOf="phone"
-                rightToLeftOf="message2"
-                topToTopOf="message2"
-                marginLeft="24px">
+            <ConstrainedView id="phone-number2" height={50} leftToRightOf="phone" rightToLeftOf="message2" topToTopOf="message2" marginLeft="24px">
                 (650) 555-4321 <br />
                 <small>Mobile</small>
             </ConstrainedView>
 
             <ConstrainedView
                 id="rule"
-                width={0}
                 height={3}
-                topToBottomOf="phone-number2"
-                leftToLeftOf={PARENT}
-                rightToRightOf={PARENT}
                 marginTop="16px"
                 marginLeft="72px"
                 marginRight="12px"
+                leftToLeftOf={PARENT}
+                rightToRightOf={PARENT}
+                topToBottomOf="phone-number2"
                 style={{ backgroundColor: "#aeaeae" }}
             />
 
@@ -238,21 +196,14 @@ export const preview2 = () => {
                 id="email"
                 width={48}
                 height={48}
+                marginTop="15px"
                 topToBottomOf="rule"
                 leftToLeftOf={PARENT}
-                marginTop="15px"
                 style={{ padding: "0 19px" }}>
                 <i className="fas fa-envelope" style={{ color: "#4e1ebb" }} />
             </ConstrainedView>
 
-            <ConstrainedView
-                id="email-address"
-                width={0}
-                height={50}
-                leftToRightOf="email"
-                rightToRightOf={PARENT}
-                topToTopOf="email"
-                marginLeft="24px">
+            <ConstrainedView id="email-address" height={50} marginLeft="24px" topToTopOf="email" leftToRightOf="email" rightToRightOf={PARENT}>
                 studio@react.com <br />
                 <small>Work</small>
             </ConstrainedView>

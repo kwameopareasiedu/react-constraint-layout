@@ -137,6 +137,7 @@ ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) 
         if (propWidthIsNumeric && propWidth === 0 && viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
         if (propWidthIsNumeric && propWidth === 0 && !viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
         if (propWidthIsNumeric && propWidth > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propWidth);
+        return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
     })();
 
     const leftBound = (function(self) {
@@ -253,6 +254,7 @@ ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
         if (propHeightIsNumeric && propHeight === 0 && viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
         if (propHeightIsNumeric && propHeight === 0 && !viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
         if (propHeightIsNumeric && propHeight > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propHeight);
+        return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
     })();
 
     const topBound = (function(self) {

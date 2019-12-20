@@ -32,7 +32,7 @@ export const ConstraintLayout = ({ width, height, children: _children, style: _s
         onWindowResized();
 
         return () => window.removeEventListener("resize", onWindowResized);
-    }, []);
+    }, [_children]);
 
     const onWindowResized = () => {
         const { x: parentX, y: parentY } = parentRef.current.getBoundingClientRect();
@@ -47,7 +47,7 @@ export const ConstraintLayout = ({ width, height, children: _children, style: _s
     };
 
     return (
-        <div ref={parentRef} className="constraint-layout" style={{ ..._style, position: "relative", width, height }} {...props}>
+        <div ref={parentRef} className="constraint-layout" style={{ ..._style, position: "relative", width, height, overflow: "hidden" }} {...props}>
             {children.map((child, index) => {
                 const refFn = node => (refs.current[index] = node);
                 return cloneElement(child, { _ref: refFn });
