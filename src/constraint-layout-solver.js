@@ -21,8 +21,8 @@ export function ConstraintLayoutSolver(views, refs, parent) {
 
 /** Updates the state of the view holders */
 ConstraintLayoutSolver.prototype.update = function() {
-	this.updateWidth();
-	this.updateHeight();
+    this.updateWidth();
+    this.updateHeight();
 };
 
 /** Checks if a viewId is unique in the list of views */
@@ -118,6 +118,60 @@ ConstraintLayoutSolver.prototype.updateWidth = function() {
     }
 };
 
+/**
+ * Generates a measure spec for the horizontal bounds of a view holder.
+ * When the bounds of a view holder is computed, the measure
+ * spec aids in centering or value distribution
+ */
+ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) {
+    const { width: parentWidth } = this.parent.getBoundingClientRect();
+
+    // Use the view holder's props to determine the requested width value
+    const { value: requestedWidth, spec: requestedSpec } = (function() {
+        const { width: propWidth } = viewHolder.view.props;
+        const { width: renderWidth } = viewHolder.ref.getBoundingClientRect();
+        const propWidthIsNumeric = Object.prototype.toString.call(propWidth) === "[object Number]";
+
+        if (propWidth === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
+        if (propWidth === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth);
+        if (propWidthIsNumeric && propWidth === 0 && viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
+        if (propWidthIsNumeric && propWidth === 0 && !viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
+        if (propWidthIsNumeric && propWidth > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propWidth);
+    })();
+
+    const leftBound = (function(self) {
+        if (viewHolder.isLeftConstrained) {
+            const targetViewHolder = self.searchViewHolders(viewHolder.leftToLeftOf || viewHolder.leftToRightOf);
+            if (targetViewHolder === PARENT_REF && viewHolder.leftToLeftOf) return 0;
+            if (targetViewHolder === PARENT_REF && viewHolder.leftToRightOf) return parentWidth;
+            if (targetViewHolder !== PARENT_REF && viewHolder.leftToLeftOf) return targetViewHolder.bounds.x1;
+            if (targetViewHolder !== PARENT_REF && viewHolder.leftToRightOf) return targetViewHolder.bounds.x2;
+        } else return 0;
+    })(this);
+
+    const rightBound = (function(self) {
+        if (viewHolder.isRightConstrained) {
+            const targetViewHolder = self.searchViewHolders(viewHolder.rightToRightOf || viewHolder.rightToLeftOf);
+            if (targetViewHolder === PARENT_REF && viewHolder.rightToLeftOf) return 0;
+            if (targetViewHolder === PARENT_REF && viewHolder.rightToRightOf) return parentWidth;
+            if (targetViewHolder !== PARENT_REF && viewHolder.rightToLeftOf) return targetViewHolder.bounds.x1;
+            if (targetViewHolder !== PARENT_REF && viewHolder.rightToRightOf) return targetViewHolder.bounds.x2;
+        } else return 0;
+    })(this);
+
+    const availableWidth = (function() {
+        if (viewHolder.isHorizontallyConstrained) {
+            return Math.max(0, rightBound - leftBound);
+        } else return parentWidth;
+    })();
+
+    if (requestedWidth <= availableWidth) {
+        if (requestedSpec === MeasureSpec.UNSPECIFIED) {
+            return new MeasureSpec(MeasureSpec.EXACTLY, availableWidth);
+        } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedWidth);
+    } else return new MeasureSpec(MeasureSpec.EXACTLY, availableWidth);
+};
+
 /** Updates the state of the view holders */
 ConstraintLayoutSolver.prototype.updateHeight = function() {
     // Solve the height constraints for each view holder linearly. Because views
@@ -181,60 +235,6 @@ ConstraintLayoutSolver.prototype.updateHeight = function() {
 };
 
 /**
- * Generates a measure spec for the horizontal bounds of a view holder.
- * When the bounds of a view holder is computed, the measure
- * spec aids in centering or value distribution
- */
-ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) {
-    const { width: parentWidth } = this.parent.getBoundingClientRect();
-
-    // Use the view holder's props to determine the requested width value
-    const { value: requestedWidth, spec: requestedSpec } = (function() {
-        const { width: propWidth } = viewHolder.view.props;
-        const { width: renderWidth } = viewHolder.ref.getBoundingClientRect();
-        const propWidthIsNumeric = Object.prototype.toString.call(propWidth) === "[object Number]";
-
-        if (propWidth === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
-        if (propWidth === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth);
-        if (propWidthIsNumeric && propWidth === 0 && viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
-        if (propWidthIsNumeric && propWidth === 0 && !viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
-        if (propWidthIsNumeric && propWidth > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propWidth);
-    })();
-
-    const leftBound = (function(self) {
-        if (viewHolder.isLeftConstrained) {
-            const targetViewHolder = self.searchViewHolders(viewHolder.leftToLeftOf || viewHolder.leftToRightOf);
-            if (targetViewHolder === PARENT_REF && viewHolder.leftToLeftOf) return 0;
-            if (targetViewHolder === PARENT_REF && viewHolder.leftToRightOf) return parentWidth;
-            if (targetViewHolder !== PARENT_REF && viewHolder.leftToLeftOf) return targetViewHolder.bounds.x1;
-            if (targetViewHolder !== PARENT_REF && viewHolder.leftToRightOf) return targetViewHolder.bounds.x2;
-        } else return 0;
-    })(this);
-
-    const rightBound = (function(self) {
-        if (viewHolder.isRightConstrained) {
-            const targetViewHolder = self.searchViewHolders(viewHolder.rightToRightOf || viewHolder.rightToLeftOf);
-            if (targetViewHolder === PARENT_REF && viewHolder.rightToLeftOf) return 0;
-            if (targetViewHolder === PARENT_REF && viewHolder.rightToRightOf) return parentWidth;
-            if (targetViewHolder !== PARENT_REF && viewHolder.rightToLeftOf) return targetViewHolder.bounds.x1;
-            if (targetViewHolder !== PARENT_REF && viewHolder.rightToRightOf) return targetViewHolder.bounds.x2;
-        } else return 0;
-    })(this);
-
-    const availableWidth = (function() {
-        if (viewHolder.isHorizontallyConstrained) {
-            return Math.max(0, rightBound - leftBound);
-        } else return parentWidth;
-    })();
-
-    if (requestedWidth <= availableWidth) {
-        if (requestedSpec === MeasureSpec.UNSPECIFIED) {
-            return new MeasureSpec(MeasureSpec.EXACTLY, availableWidth);
-        } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedWidth);
-    } else return new MeasureSpec(MeasureSpec.EXACTLY, availableWidth);
-};
-
-/**
  * Generates a measure spec for the vertical bounds of a view holder.
  * When the bounds of a view holder is computed, the measure
  * spec aids in centering or value distribution
@@ -243,7 +243,7 @@ ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
     const { height: parentHeight } = this.parent.getBoundingClientRect();
 
     // Use the view holder's props to determine the requested height value
-    const { value: requestedHeight, spec: requestedSpec } = function() {
+    const { value: requestedHeight, spec: requestedSpec } = (function() {
         const { height: propHeight } = viewHolder.view.props;
         const { height: renderHeight } = viewHolder.ref.getBoundingClientRect();
         const propHeightIsNumeric = Object.prototype.toString.call(propHeight) === "[object Number]";
@@ -253,7 +253,7 @@ ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
         if (propHeightIsNumeric && propHeight === 0 && viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
         if (propHeightIsNumeric && propHeight === 0 && !viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
         if (propHeightIsNumeric && propHeight > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propHeight);
-    };
+    })();
 
     const topBound = (function(self) {
         if (viewHolder.isTopConstrained) {
