@@ -2,6 +2,7 @@ import PT from "prop-types";
 import React, { Children, cloneElement, useEffect, useRef } from "react";
 import { ConstraintLayoutSolver } from "./constraint-layout-solver";
 import { ConstrainedView } from "./constrained-view";
+import { ConstraintGuide } from "./constraint-guide";
 import { isDefined } from "./utils";
 
 /**
@@ -11,45 +12,45 @@ import { isDefined } from "./utils";
 export const ConstraintLayout = ({ width, height, children: _children, style: _style, ...props }) => {
     if (!isDefined(height)) throw "<ConstraintLayout /> height is required";
 
+    // Ensure only <ConstrainedView /> and <ConstraintGuide /> are direct children
     const children = Children.toArray(_children).filter(c => {
-        const validChildType = (() => {
+        const validChildType = (function() {
             if (Object.prototype.toString.call(c.type) === "[object Function]") {
-                return c.type.prototype === ConstrainedView.prototype;
+                return [ConstrainedView.prototype, ConstraintGuide.prototype].includes(c.type.prototype);
             } else return false;
         })();
 
-        if (!validChildType) console.error("Only a <ConstrainedView /> can be a direct child of a <ConstrainedLayout />");
+        if (!validChildType) console.error("Only <ConstrainedView /> and <ConstraintGuide /> can be direct children of <ConstrainedLayout />");
         return validChildType;
     });
 
-    const viewSolver = useRef(function() {});
-    const refs = useRef(Array(children.length).fill(null));
+    // Filter out the constrained views
+    const views = children.filter(child => child.type.prototype === ConstrainedView.prototype);
+    // Filter out the constraint guides
+    const guides = children.filter(child => child.type.prototype === ConstraintGuide.prototype);
+
+    const solver = useRef();
     const parentRef = useRef();
+    const refs = useRef(Array(views.length).fill(null));
 
     useEffect(() => {
-        viewSolver.current = new ConstraintLayoutSolver(children, refs.current, parentRef.current);
-        window.addEventListener("resize", onWindowResized);
-        onWindowResized();
-
-        return () => window.removeEventListener("resize", onWindowResized);
+        // noinspection JSValidateTypes
+        solver.current = new ConstraintLayoutSolver(views, guides, refs.current, parentRef.current);
+        solver.current.invalidate();
     }, [_children]);
 
-    const onWindowResized = () => {
-        const { x: parentX, y: parentY } = parentRef.current.getBoundingClientRect();
-        viewSolver.current.update();
-
-        for (const viewHolder of viewSolver.current.viewHolders) {
-            viewHolder.ref.style.left = `${viewHolder.position.x1 - parentX}px`;
-            viewHolder.ref.style.width = `${viewHolder.position.x2 - viewHolder.position.x1}px`;
-            viewHolder.ref.style.top = `${viewHolder.position.y1 - parentY}px`;
-            viewHolder.ref.style.height = `${viewHolder.position.y2 - viewHolder.position.y1}px`;
-        }
-    };
+    useEffect(() => {
+        const onResize = () => solver.current.invalidate();
+        const onUnmount = () => window.removeEventListener("resize", onResize);
+        window.addEventListener("resize", onResize);
+        return onUnmount;
+    }, []);
 
     return (
         <div ref={parentRef} className="constraint-layout" style={{ ..._style, position: "relative", width, height, overflow: "hidden" }} {...props}>
-            {children.map((child, index) => {
+            {views.map((child, index) => {
                 const refFn = node => (refs.current[index] = node);
+                // noinspection JSCheckFunctionSignatures
                 return cloneElement(child, { _ref: refFn });
             })}
         </div>

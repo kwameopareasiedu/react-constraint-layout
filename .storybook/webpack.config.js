@@ -1,5 +1,3 @@
-const path = require("path");
-
 module.exports = ({ config }) => {
     config.module.rules.push({
         test: /\.(scss|css)$/,

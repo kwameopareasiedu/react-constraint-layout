@@ -1,51 +1,82 @@
 import { ConstrainedViewHolder } from "./constrained-view-holder";
 import { PARENT, Constraint, MeasureSpec, Dimension } from "./utils";
+import { ConstraintGuideHolder } from "./constraint-guide-holder";
 
 /**
  * The ConstraintLayoutSolver is used by the ConstraintLayout to solve for the
  * position coordinates [(x1, y1) and (x2, y2)] of its current children.
  */
-export function ConstraintLayoutSolver(views, refs, parent) {
+export function ConstraintLayoutSolver(views, guides, refs, parent) {
     this.parent = parent;
-    this.viewHolders = [];
 
-    // Initialize the solver by creating the view holders for each view
-    for (let i = 0; i < views.length; i++) {
-        const viewHolder = new ConstrainedViewHolder(views[i], refs[i]);
+    this.viewHolders = (function(self) {
+        const holders = [];
 
-        if (!this.viewIdIsUnique(viewHolder.id)) {
-            throw `Duplicate ID: ${viewHolder.id}`;
-        } else this.viewHolders.push(viewHolder);
-    }
+        for (let i = 0; i < views.length; i++) {
+            const viewHolder = new ConstrainedViewHolder(views[i], refs[i]);
+
+            if (!self.viewIdIsUnique(viewHolder.id, holders)) {
+                throw `Duplicate ID: ${viewHolder.id}`;
+            } else holders.push(viewHolder);
+        }
+
+        return holders;
+    })(this);
+
+    this.guideHolders = (function(self) {
+        const holders = [];
+
+        for (let i = 0; i < guides.length; i++) {
+            const guideHolder = new ConstraintGuideHolder(guides[i], parent);
+
+            if (!self.viewIdIsUnique(guideHolder.id, holders)) {
+                throw `Duplicate ID: ${guideHolder.id}`;
+            } else holders.push(guideHolder);
+        }
+
+        return holders;
+    })(this);
 }
 
-/** Updates the state of the view holders */
-ConstraintLayoutSolver.prototype.update = function() {
+/**
+ * Invalidates the states of the view holders and guides.
+ * This in turn forces a the solver to recompute positions
+ * of the views and guides
+ */
+ConstraintLayoutSolver.prototype.invalidate = function() {
+    this.updateGuides();
     this.updateWidth();
     this.updateHeight();
+
+    // After re-computation, apply the positions for each view holder
+    for (const viewHolder of this.viewHolders) {
+        viewHolder.ref.style.top = `${viewHolder.position.y1}px`;
+        viewHolder.ref.style.left = `${viewHolder.position.x1}px`;
+        viewHolder.ref.style.width = `${viewHolder.position.x2 - viewHolder.position.x1}px`;
+        viewHolder.ref.style.height = `${viewHolder.position.y2 - viewHolder.position.y1}px`;
+    }
 };
 
 /** Checks if a viewId is unique in the list of views */
-ConstraintLayoutSolver.prototype.viewIdIsUnique = function(viewId) {
-    return this.viewHolders.filter(holder => holder.id === viewId).length === 0;
+ConstraintLayoutSolver.prototype.viewIdIsUnique = function(viewId, holders) {
+    return holders.filter(holder => holder.id === viewId).length === 0;
 };
 
 /**
- * For a identifier value, this searches the set of view holder objects and returns
- * the first holder which matches the identifier. If the identifier is an array,
- * each entry is used to search the set for a matching holder object.
+ * For an identifier value, this searches the set of view and guide holder objects
+ * and returns the holder which first matches the identifier. If the identifier
+ * is an array, the first matching entry is returned.
+ * If no holder match is found, the parent reference is returned
  */
 ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
+    const holders = [...this.viewHolders, ...this.guideHolders];
+
     switch (Object.prototype.toString.call(identifier)) {
-        case "[object String]": {
-            // If identifier is a string, return a holder with a matching id else return the parent ref
-            return this.viewHolders.filter(holder => holder.id === identifier)[0] || PARENT;
-        }
+        case "[object String]":
+            return holders.filter(holder => holder.id === identifier)[0] || PARENT;
         case "[object Array]": {
-            // If identifier is an array, loop through all the targets
-            // and return the one which first matches the identifier
             for (const id of identifier) {
-                const viewHolder = this.viewHolders.filter(holder => holder.id === id)[0];
+                const viewHolder = holders.filter(holder => holder.id === id)[0];
                 if (viewHolder) return viewHolder;
             }
 
@@ -54,6 +85,12 @@ ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
         default:
             throw "Constraint value must either be a string or an array of strings";
     }
+};
+
+/** Updates the state of the guide holders */
+ConstraintLayoutSolver.prototype.updateGuides = function() {
+    // Update the bounds of the constraint guides before recomputing view holder bounds
+    for (const holder of this.guideHolders) holder.updateBoundsIfPercent(this.parent);
 };
 
 /** Updates the state of the view holders */
