@@ -2,15 +2,36 @@ import React from "react";
 import PT from "prop-types";
 
 /** Represents a direct child of the ConstraintLayout */
-export const ConstrainedView = ({ _ref, children, id, as: Component = "div", style: _style, ...props }) => {
-    const style = { ..._style, position: "absolute", display: "block", width: "auto", margin: "0", overflow: "hidden", boxSizing: "border-box" };
+// eslint-disable-next-line react/prop-types
+export const ConstrainedView = ({ _ref, children, id, as: Component = "div", ...rest }) => {
+    // Filter out non-HTML attributes to prevent console errors
+    const renderProps = Object.keys(rest)
+        .filter(k => !ConstrainedView.renderExcludedKeys.includes(k))
+        .reduce((acc, k) => ({ ...acc, [k]: rest[k] }), {});
 
     return (
-        <Component {...props} ref={_ref} id={id} style={style}>
+        <Component ref={_ref} id={id} {...renderProps}>
             {children}
         </Component>
     );
 };
+
+ConstrainedView.renderExcludedKeys = [
+    "marginTop",
+    "marginLeft",
+    "marginRight",
+    "marginBottom",
+    "leftToLeftOf",
+    "leftToRightOf",
+    "rightToRightOf",
+    "rightToLeftOf",
+    "topToTopOf",
+    "topToBottomOf",
+    "bottomToBottomOf",
+    "bottomToTopOf",
+    "horizontalBias",
+    "verticalBias"
+];
 
 ConstrainedView.propTypes = {
     as: PT.any,
@@ -31,7 +52,5 @@ ConstrainedView.propTypes = {
     bottomToTopOf: PT.oneOfType([PT.string, PT.array]),
     horizontalBias: PT.number,
     verticalBias: PT.number,
-    style: PT.object,
-    children: PT.any,
-    _ref: PT.func
+    children: PT.any
 };

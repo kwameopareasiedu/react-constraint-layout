@@ -1,6 +1,6 @@
 import { ConstrainedViewHolder } from "./constrained-view-holder";
-import { PARENT, Constraint, MeasureSpec, Dimension } from "./utils";
 import { ConstraintGuideHolder } from "./constraint-guide-holder";
+import { PARENT, Constraint, MeasureSpec, Dimension } from "./utils";
 
 /**
  * The ConstraintLayoutSolver is used by the ConstraintLayout to solve for the
@@ -48,8 +48,14 @@ ConstraintLayoutSolver.prototype.invalidate = function() {
     this.updateWidth();
     this.updateHeight();
 
-    // After re-computation, apply the positions for each view holder
+    // After re-computation, apply the positions and styles for each view holder
     for (const viewHolder of this.viewHolders) {
+        viewHolder.ref.style.position = "absolute";
+        viewHolder.ref.style.display = "block";
+        viewHolder.ref.style.width = "auto";
+        viewHolder.ref.style.margin = "0";
+        viewHolder.ref.style.overflow = "hidden";
+        viewHolder.ref.style.boxSizing = "border-box";
         viewHolder.ref.style.top = `${viewHolder.position.y1}px`;
         viewHolder.ref.style.left = `${viewHolder.position.x1}px`;
         viewHolder.ref.style.width = `${viewHolder.position.x2 - viewHolder.position.x1}px`;
@@ -90,7 +96,7 @@ ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
 /** Updates the state of the guide holders */
 ConstraintLayoutSolver.prototype.updateGuides = function() {
     // Update the bounds of the constraint guides before recomputing view holder bounds
-    for (const holder of this.guideHolders) holder.updateBoundsIfPercent(this.parent);
+    for (const holder of this.guideHolders) holder.updateBounds(this.parent);
 };
 
 /** Updates the state of the view holders */
@@ -167,13 +173,14 @@ ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) 
     const { value: requestedWidth, spec: requestedSpec } = (function() {
         const { width: propWidth } = viewHolder.view.props;
         const { width: renderWidth } = viewHolder.ref.getBoundingClientRect();
-        const propWidthIsNumeric = Object.prototype.toString.call(propWidth) === "[object Number]";
+        const _propWidth = parseFloat(propWidth);
+        const isNumeric = !isNaN(_propWidth);
 
-        if (propWidth === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
-        if (propWidth === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth);
-        if (propWidthIsNumeric && propWidth === 0 && viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
-        if (propWidthIsNumeric && propWidth === 0 && !viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
-        if (propWidthIsNumeric && propWidth > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propWidth);
+        if (!isNumeric && propWidth === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
+        if (!isNumeric && propWidth === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth);
+        if (isNumeric && parseFloat(propWidth) === 0 && viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
+        if (isNumeric && parseFloat(propWidth) === 0 && !viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
+        if (isNumeric && parseFloat(propWidth) > 0) return new MeasureSpec(MeasureSpec.EXACTLY, _propWidth);
         return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
     })();
 
@@ -284,13 +291,14 @@ ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
     const { value: requestedHeight, spec: requestedSpec } = (function() {
         const { height: propHeight } = viewHolder.view.props;
         const { height: renderHeight } = viewHolder.ref.getBoundingClientRect();
-        const propHeightIsNumeric = Object.prototype.toString.call(propHeight) === "[object Number]";
+        const _propHeight = parseFloat(propHeight);
+        const isNumeric = !isNaN(_propHeight);
 
-        if (propHeight === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentHeight);
-        if (propHeight === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderHeight);
-        if (propHeightIsNumeric && propHeight === 0 && viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
-        if (propHeightIsNumeric && propHeight === 0 && !viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
-        if (propHeightIsNumeric && propHeight > 0) return new MeasureSpec(MeasureSpec.EXACTLY, propHeight);
+        if (!isNumeric && propHeight === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentHeight);
+        if (!isNumeric && propHeight === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderHeight);
+        if (isNumeric && _propHeight === 0 && viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
+        if (isNumeric && _propHeight === 0 && !viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
+        if (isNumeric && _propHeight > 0) return new MeasureSpec(MeasureSpec.EXACTLY, _propHeight);
         return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
     })();
 

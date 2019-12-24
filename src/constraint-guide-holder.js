@@ -61,13 +61,15 @@ ConstraintGuideHolder.prototype.validateAttributes = function() {
     if (isDefined(this.end) && Object.prototype.toString.call(this.end) !== "[object Number]") throw "<ConstraintGuide /> 'end' must be a number";
 };
 
-/** If the guide is using a percentage, this updates the bounds using the parent's width/height */
-ConstraintGuideHolder.prototype.updateBoundsIfPercent = function(parent) {
-    if (this.orientation === ConstraintGuideHolder.ORIENTATION_VERTICAL && isDefined(this.percent)) {
+/** Updates the bounds of this guide if the guide bound depends on the parent */
+ConstraintGuideHolder.prototype.updateBounds = function(parent) {
+    if (this.orientation === ConstraintGuideHolder.ORIENTATION_VERTICAL) {
         const { width: parentWidth } = parent.getBoundingClientRect();
-        this.bounds.x1 = this.bounds.x2 = 0.01 * this.percent * parentWidth;
-    } else if (this.orientation === ConstraintGuideHolder.ORIENTATION_HORIZONTAL && isDefined(this.percent)) {
+        if (isDefined(this.end)) this.bounds.x1 = this.bounds.x2 = parentWidth - this.end;
+        if (isDefined(this.percent)) this.bounds.x1 = this.bounds.x2 = 0.01 * this.percent * parentWidth;
+    } else if (this.orientation === ConstraintGuideHolder.ORIENTATION_HORIZONTAL) {
         const { height: parentHeight } = parent.getBoundingClientRect();
-        this.bounds.y1 = this.bounds.y2 = 0.01 * this.percent * parentHeight;
+        if (isDefined(this.end)) this.bounds.y1 = this.bounds.y2 = parentHeight - this.end;
+        if (isDefined(this.percent)) this.bounds.y1 = this.bounds.y2 = 0.01 * this.percent * parentHeight;
     }
 };

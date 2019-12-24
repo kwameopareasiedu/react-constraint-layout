@@ -1,4 +1,4 @@
-import { Constraint, Dimension } from "./utils";
+import { Constraint, Dimension, isDefined } from "./utils";
 
 /**
  * An holder representation of a ConstrainedView. Also contains the coordinate pairs
@@ -71,18 +71,16 @@ ConstrainedViewHolder.prototype.validateAttributes = function() {
 
     // Validate width value
     const propWidthValue = this.view.props.width;
-    const propWidthType = Object.prototype.toString.call(propWidthValue);
-    if (typeof propWidthValue === "undefined") console.warn(`${this.id}: Width not specified. Default to 0px`);
-    if (propWidthType === "[object Number]" && propWidthValue < 0) throw `${this.id}: Width cannot be less than 0`;
-    if (propWidthType === "[object String]" && !stringDimensions.includes(propWidthValue))
-        throw `${this.id}: Width must either be of "${Dimension.MATCH_PARENT}" or "${Dimension.MATCH_CONTENT}"`;
+    if (isDefined(propWidthValue) && !isNaN(parseFloat(propWidthValue)) && parseFloat(propWidthValue) < 0)
+        throw `${this.id}: Width cannot be less than 0`;
+    if (isDefined(propWidthValue) && isNaN(parseFloat(propWidthValue)) && !stringDimensions.includes(propWidthValue))
+        throw `${this.id}: Width must either be "${Dimension.MATCH_PARENT}" or "${Dimension.MATCH_CONTENT}"`;
 
     // Validate height value
     const propHeightValue = this.view.props.height;
-    const propHeightType = Object.prototype.toString.call(propHeightValue);
-    if (typeof propHeightValue === "undefined") console.warn(`${this.id}: Height not specified. Default to 0px`);
-    if (propHeightType === "[object Number]" && propHeightValue < 0) throw `${this.id}: Height is cannot be less than 0`;
-    if (propHeightType === "[object String]" && !stringDimensions.includes(propHeightValue))
+    if (isDefined(propHeightValue) && !isNaN(parseFloat(propHeightValue)) && parseFloat(propHeightValue) < 0)
+        throw `${this.id}: Height is cannot be less than 0`;
+    if (isDefined(propHeightValue) && isNaN(parseFloat(propHeightValue)) && !stringDimensions.includes(propHeightValue))
         throw `${this.id}: Height must either be "${Dimension.MATCH_PARENT}" or "${Dimension.MATCH_CONTENT}"`;
 
     // Check for conflicting constraints

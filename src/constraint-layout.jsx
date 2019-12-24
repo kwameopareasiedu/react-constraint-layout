@@ -6,60 +6,70 @@ import { ConstraintGuide } from "./constraint-guide";
 import { isDefined } from "./utils";
 
 /**
- * ConstraintLayout which allows for positioning elements in a flat hierarchy
- * in a flexible manner with constraints.
+ * ConstraintLayout which allows for positioning elements relative to each other
+ * in a flat hierarchy by using constraints. Since a ConstraintLayout can be a
+ * child of itself, we'll need to expose the _ref function.
  */
-export const ConstraintLayout = ({ width, height, children: _children, style: _style, ...props }) => {
+// eslint-disable-next-line react/prop-types
+export const ConstraintLayout = ({ _ref, id, className, width, height, children }) => {
     if (!isDefined(height)) throw "<ConstraintLayout /> height is required";
 
-    // Ensure only <ConstrainedView /> and <ConstraintGuide /> are direct children
-    const children = Children.toArray(_children).filter(c => {
-        const validChildType = (function() {
-            if (Object.prototype.toString.call(c.type) === "[object Function]") {
-                return [ConstrainedView.prototype, ConstraintGuide.prototype].includes(c.type.prototype);
-            } else return false;
-        })();
-
-        if (!validChildType) console.error("Only <ConstrainedView /> and <ConstraintGuide /> can be direct children of <ConstrainedLayout />");
-        return validChildType;
-    });
-
-    // Filter out the constrained views
-    const views = children.filter(child => child.type.prototype === ConstrainedView.prototype);
-    // Filter out the constraint guides
-    const guides = children.filter(child => child.type.prototype === ConstraintGuide.prototype);
-
-    const solver = useRef();
-    const parentRef = useRef();
+    const childrenArray = Children.toArray(children);
+    const validChildPrototypes = [ConstrainedView.prototype, ConstraintLayout.prototype];
+    const views = childrenArray.filter(c => c.type && validChildPrototypes.includes(c.type.prototype));
+    const guides = childrenArray.filter(c => c.type && ConstraintGuide.prototype === c.type.prototype);
     const refs = useRef(Array(views.length).fill(null));
+    const solverRef = useRef(() => {});
+    const rootRef = useRef();
 
     useEffect(() => {
-        // noinspection JSValidateTypes
-        solver.current = new ConstraintLayoutSolver(views, guides, refs.current, parentRef.current);
-        solver.current.invalidate();
-    }, [_children]);
+        const solver = new ConstraintLayoutSolver(views, guides, refs.current, rootRef.current);
+        solverRef.current = solver;
+        solver.invalidate();
+    }, [children]);
 
     useEffect(() => {
-        const onResize = () => solver.current.invalidate();
-        const onUnmount = () => window.removeEventListener("resize", onResize);
-        window.addEventListener("resize", onResize);
-        return onUnmount;
+        solverRef.current.invalidate();
+    }, [width, height]);
+
+    useEffect(() => {
+        // If _ref (a callback ref) was defined, pass the DOM element to it
+        // to make it also available to the parent ConstraintLayout
+        if (_ref) _ref(rootRef.current);
+        const onResize = () => solverRef.current.invalidate();
+        rootRef.current.addEventListener("resize", onResize);
+        return () => rootRef.current.removeEventListener("resize", onResize);
     }, []);
 
+    const style = { position: "relative", overflow: "hidden", width, height };
+
     return (
-        <div ref={parentRef} className="constraint-layout" style={{ ..._style, position: "relative", width, height, overflow: "hidden" }} {...props}>
+        <div ref={rootRef} id={id} className={`constraint-layout ${className ? className : ""}`} style={style}>
             {views.map((child, index) => {
-                const refFn = node => (refs.current[index] = node);
+                const childRef = node => (refs.current[index] = node);
                 // noinspection JSCheckFunctionSignatures
-                return cloneElement(child, { _ref: refFn });
+                return cloneElement(child, { _ref: childRef });
             })}
         </div>
     );
 };
 
 ConstraintLayout.propTypes = {
-    children: PT.any,
-    width: PT.oneOfType([PT.string, PT.number]),
-    height: PT.oneOfType([PT.string, PT.number]).isRequired,
-    style: PT.object
+    width: PT.oneOfType([PT.number, PT.string]),
+    height: PT.oneOfType([PT.number, PT.string]),
+    marginTop: PT.oneOfType([PT.number, PT.string]),
+    marginLeft: PT.oneOfType([PT.number, PT.string]),
+    marginRight: PT.oneOfType([PT.number, PT.string]),
+    marginBottom: PT.oneOfType([PT.number, PT.string]),
+    leftToLeftOf: PT.oneOfType([PT.string, PT.array]),
+    leftToRightOf: PT.oneOfType([PT.string, PT.array]),
+    rightToRightOf: PT.oneOfType([PT.string, PT.array]),
+    rightToLeftOf: PT.oneOfType([PT.string, PT.array]),
+    topToTopOf: PT.oneOfType([PT.string, PT.array]),
+    topToBottomOf: PT.oneOfType([PT.string, PT.array]),
+    bottomToBottomOf: PT.oneOfType([PT.string, PT.array]),
+    bottomToTopOf: PT.oneOfType([PT.string, PT.array]),
+    horizontalBias: PT.number,
+    verticalBias: PT.number,
+    children: PT.any
 };

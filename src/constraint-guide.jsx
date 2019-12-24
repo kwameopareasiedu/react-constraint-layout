@@ -4,9 +4,7 @@ import PT from "prop-types";
  * A non-visual component used as anchor points for ConstrainedViews
  * @return {null}
  */
-export const ConstraintGuide = function() {
-    return null;
-};
+export const ConstraintGuide = () => null;
 
 ConstraintGuide.propTypes = {
     id: PT.string,
