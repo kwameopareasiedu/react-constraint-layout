@@ -2,7 +2,8 @@
 
 react-constraint-layout is a Javascript library that provides a constraint based solution to position HTML elements relative to each other and to the parent **with zero CSS**.
 
-![react-16.12.0](https://img.shields.io/badge/react-v16.2.0+-blue)
+![](https://img.shields.io/badge/react-v16.2.0+-blue)
+![](https://img.shields.io/badge/minified%20size-39.7%20kB-blue)
 [![](https://img.shields.io/badge/github-star-lightgrey)](https://github.com/kwameopareasiedu/react-constraint-layout)
 [![](https://img.shields.io/badge/patreon-support-orange)](https://www.patreon.com/kwameopareasiedu)
 
