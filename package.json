@@ -20,6 +20,8 @@
         "url": "https://github.com/kwameopareasiedu/react-constraint-layout"
     },
     "bugs": "https://github.com/kwameopareasiedu/react-constraint-layout/issues",
+    "main": "./dist/bundle.js",
+    "typings": "./dist/index.d.ts",
     "devDependencies": {
         "@babel/core": "^7.7.7",
         "@babel/plugin-transform-react-jsx": "^7.7.7",
