@@ -10,4 +10,5 @@ src
 .prettierrc
 LICENCE.md
 *.iml
+*.tgz
 rollup.config.js

@@ -14,6 +14,7 @@ node_modules
 *.bat
 *.sh
 *.iml
+*.tgz
 .grunt
 .lock-wscript
 npm-debug.log
