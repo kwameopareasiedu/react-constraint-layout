@@ -11,6 +11,8 @@
         "test": "echo \\\"Error: no tests specified\\\" && exit 1"
     },
     "keywords": [
+        "react",
+        "reactjs",
         "constraint",
         "constraint-layout"
     ],

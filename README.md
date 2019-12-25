@@ -91,7 +91,7 @@ It supports the following props:
 
 ### Examples
 
-The [examples](./examples/EXAMPLES.md) folder contains code samples for the two user interfaces showcased in the screenshots.
+The [examples](https://github.com/kwameopareasiedu/react-constraint-layout/blob/master/examples/EXAMPLES.md) folder contains code samples for the two user interfaces showcased in the screenshots.
 
 ### Maintainers
 
@@ -116,4 +116,4 @@ It would be really helpful if you can star the project on [Github](https://githu
 
 ### Licence
 
-[MIT](./LICENCE.md) (c) Kwame Opare Asiedu
+[MIT](https://github.com/kwameopareasiedu/react-constraint-layout/blob/master/LICENCE.md) (c) Kwame Opare Asiedu
