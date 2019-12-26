@@ -1,12 +1,13 @@
 {
     "name": "react-constraint-layout",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "React implementation of Android's ConstraintLayout",
     "author": "Kwame Opare Asiedu",
     "license": "MIT",
     "scripts": {
         "storybook": "start-storybook -p 6006",
         "build-storybook": "build-storybook -c .storybook -o docs",
+        "test-build": "rollup --watch -c rollup.config.js --environment INCLUDE_DEPS,BUILD:production",
         "build": "rollup -c rollup.config.js --environment INCLUDE_DEPS,BUILD:production",
         "test": "echo \\\"Error: no tests specified\\\" && exit 1"
     },
@@ -56,5 +57,6 @@
     },
     "peerDependencies": {
         "react": "^16.12.0"
-    }
+    },
+    "dependencies": {}
 }

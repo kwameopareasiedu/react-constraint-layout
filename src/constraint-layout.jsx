@@ -15,9 +15,9 @@ export const ConstraintLayout = ({ _ref, id, className, width, height, children 
     if (!isDefined(height)) throw "<ConstraintLayout /> height is required";
 
     const childrenArray = Children.toArray(children);
-    const validChildPrototypes = [ConstrainedView.prototype, ConstraintLayout.prototype];
-    const views = childrenArray.filter(c => c.type && validChildPrototypes.includes(c.type.prototype));
-    const guides = childrenArray.filter(c => c.type && ConstraintGuide.prototype === c.type.prototype);
+    const validChildFunctions = [ConstrainedView, ConstraintLayout];
+    const views = childrenArray.filter(c => c.type && validChildFunctions.includes(c.type));
+    const guides = childrenArray.filter(c => c.type && c.type === ConstraintGuide);
     const refs = useRef(Array(views.length).fill(null));
     const solverRef = useRef(() => {});
     const rootRef = useRef();
