@@ -117,3 +117,15 @@ It would be really helpful if you can star the project on [Github](https://githu
 ### Licence
 
 [MIT](https://github.com/kwameopareasiedu/react-constraint-layout/blob/master/LICENCE.md) (c) Kwame Opare Asiedu
+
+### Changelog
+
+-   1.0.2
+    -   Fixed solver update on window resize feature in `<ConstraintLayout />` component
+    -   Added `useWindowBreakpoints` hook. Handy for conditional rendering at different window breakpoints
+    -   Added optional types to props
+    -   Fixed rollup configuration issue causing watch mode to fail after first trigger in development mode
+-   1.0.1
+    -   Fixed issue [#1](https://github.com/kwameopareasiedu/react-constraint-layout/issues/1)
+-   1.0.0
+    -   Initial release

@@ -19,5 +19,10 @@ module.exports = {
         }),
         terser()
     ],
-    external: ["react"]
+    watch: {
+        chokidar: {
+            usePolling: true
+        }
+    },
+    external: ["react", "react-dom"]
 };

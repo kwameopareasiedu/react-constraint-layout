@@ -1,6 +1,6 @@
 {
     "name": "react-constraint-layout",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "React implementation of Android's ConstraintLayout",
     "author": "Kwame Opare Asiedu",
     "license": "MIT",
@@ -56,7 +56,7 @@
         "style-loader": "^1.1.1"
     },
     "peerDependencies": {
-        "react": "^16.12.0"
-    },
-    "dependencies": {}
+        "react": "^16.12.0",
+        "react-dom": "^16.12.0"
+    }
 }

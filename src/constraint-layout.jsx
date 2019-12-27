@@ -37,8 +37,8 @@ export const ConstraintLayout = ({ _ref, id, className, width, height, children 
         // to make it also available to the parent ConstraintLayout
         if (_ref) _ref(rootRef.current);
         const onResize = () => solverRef.current.invalidate();
-        rootRef.current.addEventListener("resize", onResize);
-        return () => rootRef.current.removeEventListener("resize", onResize);
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
     }, []);
 
     const style = { position: "relative", overflow: "hidden", width, height };
