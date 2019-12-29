@@ -1,106 +1,66 @@
-import { ConstrainedViewHolder } from "./constrained-view-holder";
-import { ConstraintGuideHolder } from "./constraint-guide-holder";
-import { PARENT, Constraint, MeasureSpec, Dimension } from "./utils";
+import { ViewHolder } from "./view-holder";
+import { GuideHolder } from "./guide-holder";
+import { DimensionConstant } from "./dimension-constant";
+import { ConstraintTarget } from "./constraint-target";
+import { MeasureSpec } from "./measure-spec";
+import { PARENT } from "../utils";
 
 /**
- * The ConstraintLayoutSolver is used by the ConstraintLayout to solve for the
- * position coordinates [(x1, y1) and (x2, y2)] of its current children.
+ * The LayoutSolver is used by the ConstraintLayout to solve for the
+ * position coordinates [(x1, y1) and (x2, y2)] of its children
  */
-export function ConstraintLayoutSolver(views, guides, refs, parent) {
+export function LayoutSolver() {}
+
+/** Initializes the layout solver with the view and guide object data and the parent ref */
+LayoutSolver.prototype.init = function(viewData, viewRefs, guideData, parent, autoHeight) {
+    this.viewHolders = [];
+    this.guideHolders = [];
+    this.autoHeight = autoHeight;
     this.parent = parent;
 
-    this.viewHolders = (function(self) {
-        const holders = [];
+    for (let i = 0; i < viewData.length; i++) {
+        const viewHolder = new ViewHolder(viewData[i], viewRefs[i]);
 
-        for (let i = 0; i < views.length; i++) {
-            const viewHolder = new ConstrainedViewHolder(views[i], refs[i]);
+        if (!this.viewIdIsUnique(viewHolder.id, this.viewHolders)) {
+            throw `Duplicate ID: ${viewHolder.id}`;
+        } else this.viewHolders.push(viewHolder);
+    }
 
-            if (!self.viewIdIsUnique(viewHolder.id, holders)) {
-                throw `Duplicate ID: ${viewHolder.id}`;
-            } else holders.push(viewHolder);
-        }
+    for (let i = 0; i < guideData.length; i++) {
+        const guideHolder = new GuideHolder(guideData[i], parent);
 
-        return holders;
-    })(this);
-
-    this.guideHolders = (function(self) {
-        const holders = [];
-
-        for (let i = 0; i < guides.length; i++) {
-            const guideHolder = new ConstraintGuideHolder(guides[i], parent);
-
-            if (!self.viewIdIsUnique(guideHolder.id, holders)) {
-                throw `Duplicate ID: ${guideHolder.id}`;
-            } else holders.push(guideHolder);
-        }
-
-        return holders;
-    })(this);
-}
+        if (!this.viewIdIsUnique(guideHolder.id, this.guideHolders)) {
+            throw `Duplicate ID: ${guideHolder.id}`;
+        } else this.guideHolders.push(guideHolder);
+    }
+};
 
 /**
- * Invalidates the states of the view holders and guides.
- * This in turn forces a the solver to recompute positions
- * of the views and guides
+ * Invalidates the states of the view holders and guides. This in turn forces a
+ * the solver to recompute positions of the views and guides
  */
-ConstraintLayoutSolver.prototype.invalidate = function() {
+LayoutSolver.prototype.invalidate = function() {
     this.updateGuides();
     this.updateWidth();
     this.updateHeight();
-
-    // After re-computation, apply the positions and styles for each view holder
-    for (const viewHolder of this.viewHolders) {
-        viewHolder.ref.style.position = "absolute";
-        viewHolder.ref.style.display = "block";
-        viewHolder.ref.style.width = "auto";
-        viewHolder.ref.style.margin = "0";
-        viewHolder.ref.style.overflow = "hidden";
-        viewHolder.ref.style.boxSizing = "border-box";
-        viewHolder.ref.style.top = `${viewHolder.position.y1}px`;
-        viewHolder.ref.style.left = `${viewHolder.position.x1}px`;
-        viewHolder.ref.style.width = `${viewHolder.position.x2 - viewHolder.position.x1}px`;
-        viewHolder.ref.style.height = `${viewHolder.position.y2 - viewHolder.position.y1}px`;
-    }
-};
-
-/** Checks if a viewId is unique in the list of views */
-ConstraintLayoutSolver.prototype.viewIdIsUnique = function(viewId, holders) {
-    return holders.filter(holder => holder.id === viewId).length === 0;
-};
-
-/**
- * For an identifier value, this searches the set of view and guide holder objects
- * and returns the holder which first matches the identifier. If the identifier
- * is an array, the first matching entry is returned.
- * If no holder match is found, the parent reference is returned
- */
-ConstraintLayoutSolver.prototype.searchViewHolders = function(identifier) {
-    const holders = [...this.viewHolders, ...this.guideHolders];
-
-    switch (Object.prototype.toString.call(identifier)) {
-        case "[object String]":
-            return holders.filter(holder => holder.id === identifier)[0] || PARENT;
-        case "[object Array]": {
-            for (const id of identifier) {
-                const viewHolder = holders.filter(holder => holder.id === id)[0];
-                if (viewHolder) return viewHolder;
-            }
-
-            return PARENT;
-        }
-        default:
-            throw "Constraint value must either be a string or an array of strings";
-    }
+    this.applyStyles();
+    // We'll need a second pass to recompute heights. Initially elements are all
+    // full widths, upon applying constraints, most views will reduce in width
+    // making their heights increase. The second pass will measure this change
+    // in height and apply the corrections. This will only affect views whose
+    // heights are defined as "match-content"
+    this.updateHeight();
+    this.applyStyles();
 };
 
 /** Updates the state of the guide holders */
-ConstraintLayoutSolver.prototype.updateGuides = function() {
+LayoutSolver.prototype.updateGuides = function() {
     // Update the bounds of the constraint guides before recomputing view holder bounds
     for (const holder of this.guideHolders) holder.updateBounds(this.parent);
 };
 
 /** Updates the state of the view holders */
-ConstraintLayoutSolver.prototype.updateWidth = function() {
+LayoutSolver.prototype.updateWidth = function() {
     // Solve the width constraints for each view holder linearly. Because views
     // are related to each other, preceeding views would have most likely been
     // fully positioned prior to views that depend on them via constraints
@@ -118,16 +78,16 @@ ConstraintLayoutSolver.prototype.updateWidth = function() {
 
                 if (targetHolder === PARENT) {
                     // Constrained to parent view
-                    if (constraint.type === Constraint.LEFT_TO_LEFT_OF) viewHolder.bounds.x1 = 0;
-                    if (constraint.type === Constraint.LEFT_TO_RIGHT_OF) viewHolder.bounds.x1 = parentWidth;
-                    if (constraint.type === Constraint.RIGHT_TO_RIGHT_OF) viewHolder.bounds.x2 = parentWidth;
-                    if (constraint.type === Constraint.RIGHT_TO_LEFT_OF) viewHolder.bounds.x2 = 0;
+                    if (constraint.type === ConstraintTarget.LEFT_TO_LEFT_OF) viewHolder.bounds.x1 = 0;
+                    if (constraint.type === ConstraintTarget.LEFT_TO_RIGHT_OF) viewHolder.bounds.x1 = parentWidth;
+                    if (constraint.type === ConstraintTarget.RIGHT_TO_RIGHT_OF) viewHolder.bounds.x2 = parentWidth;
+                    if (constraint.type === ConstraintTarget.RIGHT_TO_LEFT_OF) viewHolder.bounds.x2 = 0;
                 } else {
                     // Constrained to sibling view
-                    if (constraint.type === Constraint.LEFT_TO_LEFT_OF) viewHolder.bounds.x1 = targetHolder.bounds.x1;
-                    if (constraint.type === Constraint.LEFT_TO_RIGHT_OF) viewHolder.bounds.x1 = targetHolder.bounds.x2;
-                    if (constraint.type === Constraint.RIGHT_TO_RIGHT_OF) viewHolder.bounds.x2 = targetHolder.bounds.x2;
-                    if (constraint.type === Constraint.RIGHT_TO_LEFT_OF) viewHolder.bounds.x2 = targetHolder.bounds.x1;
+                    if (constraint.type === ConstraintTarget.LEFT_TO_LEFT_OF) viewHolder.bounds.x1 = targetHolder.bounds.x1;
+                    if (constraint.type === ConstraintTarget.LEFT_TO_RIGHT_OF) viewHolder.bounds.x1 = targetHolder.bounds.x2;
+                    if (constraint.type === ConstraintTarget.RIGHT_TO_RIGHT_OF) viewHolder.bounds.x2 = targetHolder.bounds.x2;
+                    if (constraint.type === ConstraintTarget.RIGHT_TO_LEFT_OF) viewHolder.bounds.x2 = targetHolder.bounds.x1;
                 }
             }
         }
@@ -166,18 +126,18 @@ ConstraintLayoutSolver.prototype.updateWidth = function() {
  * When the bounds of a view holder is computed, the measure
  * spec aids in centering or value distribution
  */
-ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) {
+LayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) {
     const { width: parentWidth } = this.parent.getBoundingClientRect();
 
     // Use the view holder's props to determine the requested width value
     const { value: requestedWidth, spec: requestedSpec } = (function() {
-        const { width: propWidth } = viewHolder.view.props;
-        const { width: renderWidth } = viewHolder.ref.getBoundingClientRect();
+        const { width: propWidth } = viewHolder.data.props;
+        const { width: renderWidth } = viewHolder.view.getBoundingClientRect();
         const _propWidth = parseFloat(propWidth);
         const isNumeric = !isNaN(_propWidth);
 
-        if (!isNumeric && propWidth === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
-        if (!isNumeric && propWidth === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth);
+        if (!isNumeric && propWidth === DimensionConstant.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentWidth);
+        if (!isNumeric && propWidth === DimensionConstant.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderWidth);
         if (isNumeric && parseFloat(propWidth) === 0 && viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
         if (isNumeric && parseFloat(propWidth) === 0 && !viewHolder.isHorizontallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
         if (isNumeric && parseFloat(propWidth) > 0) return new MeasureSpec(MeasureSpec.EXACTLY, _propWidth);
@@ -218,11 +178,11 @@ ConstraintLayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) 
 };
 
 /** Updates the state of the view holders */
-ConstraintLayoutSolver.prototype.updateHeight = function() {
+LayoutSolver.prototype.updateHeight = function() {
     // Solve the height constraints for each view holder linearly. Because views
     // are related to each other, preceeding views would have most likely been
     // fully positioned prior to views that depend on them via constraints
-    const { height: parentHeight } = this.parent.getBoundingClientRect();
+    const parentHeight = this.parent.scrollHeight;
 
     for (const viewHolder of this.viewHolders) {
         // If it is not constrained vertically, use the parent bounds as its bounds...
@@ -236,16 +196,16 @@ ConstraintLayoutSolver.prototype.updateHeight = function() {
 
                 if (targetHolder === PARENT) {
                     // Constrained to parent view
-                    if (constraint.type === Constraint.TOP_TO_TOP_OF) viewHolder.bounds.y1 = 0;
-                    if (constraint.type === Constraint.TOP_TO_BOTTOM_OF) viewHolder.bounds.y1 = parentHeight;
-                    if (constraint.type === Constraint.BOTTOM_TO_BOTTOM_OF) viewHolder.bounds.y2 = parentHeight;
-                    if (constraint.type === Constraint.BOTTOM_TO_TOP_OF) viewHolder.bounds.y2 = 0;
+                    if (constraint.type === ConstraintTarget.TOP_TO_TOP_OF) viewHolder.bounds.y1 = 0;
+                    if (constraint.type === ConstraintTarget.TOP_TO_BOTTOM_OF) viewHolder.bounds.y1 = parentHeight;
+                    if (constraint.type === ConstraintTarget.BOTTOM_TO_BOTTOM_OF) viewHolder.bounds.y2 = parentHeight;
+                    if (constraint.type === ConstraintTarget.BOTTOM_TO_TOP_OF) viewHolder.bounds.y2 = 0;
                 } else {
                     // Constrained to sibling view
-                    if (constraint.type === Constraint.TOP_TO_TOP_OF) viewHolder.bounds.y1 = targetHolder.bounds.y1;
-                    if (constraint.type === Constraint.TOP_TO_BOTTOM_OF) viewHolder.bounds.y1 = targetHolder.bounds.y2;
-                    if (constraint.type === Constraint.BOTTOM_TO_BOTTOM_OF) viewHolder.bounds.y2 = targetHolder.bounds.y2;
-                    if (constraint.type === Constraint.BOTTOM_TO_TOP_OF) viewHolder.bounds.y2 = targetHolder.bounds.y1;
+                    if (constraint.type === ConstraintTarget.TOP_TO_TOP_OF) viewHolder.bounds.y1 = targetHolder.bounds.y1;
+                    if (constraint.type === ConstraintTarget.TOP_TO_BOTTOM_OF) viewHolder.bounds.y1 = targetHolder.bounds.y2;
+                    if (constraint.type === ConstraintTarget.BOTTOM_TO_BOTTOM_OF) viewHolder.bounds.y2 = targetHolder.bounds.y2;
+                    if (constraint.type === ConstraintTarget.BOTTOM_TO_TOP_OF) viewHolder.bounds.y2 = targetHolder.bounds.y1;
                 }
             }
         }
@@ -284,18 +244,18 @@ ConstraintLayoutSolver.prototype.updateHeight = function() {
  * When the bounds of a view holder is computed, the measure
  * spec aids in centering or value distribution
  */
-ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
-    const { height: parentHeight } = this.parent.getBoundingClientRect();
+LayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
+    const parentHeight = this.parent.scrollHeight;
 
     // Use the view holder's props to determine the requested height value
     const { value: requestedHeight, spec: requestedSpec } = (function() {
-        const { height: propHeight } = viewHolder.view.props;
-        const { height: renderHeight } = viewHolder.ref.getBoundingClientRect();
+        const { height: propHeight } = viewHolder.data.props;
+        const renderHeight = viewHolder.view.scrollHeight;
         const _propHeight = parseFloat(propHeight);
         const isNumeric = !isNaN(_propHeight);
 
-        if (!isNumeric && propHeight === Dimension.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentHeight);
-        if (!isNumeric && propHeight === Dimension.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderHeight);
+        if (!isNumeric && propHeight === DimensionConstant.MATCH_PARENT) return new MeasureSpec(MeasureSpec.EXACTLY, parentHeight);
+        if (!isNumeric && propHeight === DimensionConstant.MATCH_CONTENT) return new MeasureSpec(MeasureSpec.EXACTLY, renderHeight);
         if (isNumeric && _propHeight === 0 && viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.UNSPECIFIED, 0);
         if (isNumeric && _propHeight === 0 && !viewHolder.isVerticallyConstrained) return new MeasureSpec(MeasureSpec.EXACTLY, 0);
         if (isNumeric && _propHeight > 0) return new MeasureSpec(MeasureSpec.EXACTLY, _propHeight);
@@ -333,4 +293,57 @@ ConstraintLayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
             return new MeasureSpec(MeasureSpec.EXACTLY, availableHeight);
         } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedHeight);
     } else return new MeasureSpec(MeasureSpec.EXACTLY, availableHeight);
+};
+
+/** Applies the computed positions to the views via the style component */
+LayoutSolver.prototype.applyStyles = function() {
+    let parentHeight = 0;
+
+    for (const viewHolder of this.viewHolders) {
+        viewHolder.view.style.position = "absolute";
+        viewHolder.view.style.display = "block";
+        viewHolder.view.style.width = "auto";
+        viewHolder.view.style.margin = "0";
+        viewHolder.view.style.overflow = "hidden";
+        viewHolder.view.style.boxSizing = "border-box";
+        viewHolder.view.style.top = `${viewHolder.position.y1}px`;
+        viewHolder.view.style.left = `${viewHolder.position.x1}px`;
+        viewHolder.view.style.width = `${viewHolder.position.x2 - viewHolder.position.x1}px`;
+        viewHolder.view.style.height = `${viewHolder.position.y2 - viewHolder.position.y1}px`;
+
+        if (viewHolder.position.y2 > parentHeight) parentHeight = viewHolder.position.y2;
+    }
+
+    // If autoParentHeight is true, compute the parent height from the views
+    if (this.autoHeight) this.parent.style.height = `${parentHeight}px`;
+};
+
+/**
+ * For an identifier value, this searches the set of view and guide holder objects
+ * and returns the holder which first matches the identifier. If the identifier
+ * is an array, the first matching entry is returned.
+ * If no holder match is found, the parent reference is returned
+ */
+LayoutSolver.prototype.searchViewHolders = function(identifier) {
+    const holders = [...this.viewHolders, ...this.guideHolders];
+
+    switch (Object.prototype.toString.call(identifier)) {
+        case "[object String]":
+            return holders.filter(holder => holder.id === identifier)[0] || PARENT;
+        case "[object Array]": {
+            for (const id of identifier) {
+                const viewHolder = holders.filter(holder => holder.id === id)[0];
+                if (viewHolder) return viewHolder;
+            }
+
+            return PARENT;
+        }
+        default:
+            throw "Constraint value must either be a string or an array of strings";
+    }
+};
+
+/** Checks if a viewId is unique in the list of views */
+LayoutSolver.prototype.viewIdIsUnique = function(viewId, holders) {
+    return holders.filter(holder => holder.id === viewId).length === 0;
 };

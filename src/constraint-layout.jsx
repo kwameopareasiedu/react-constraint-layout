@@ -1,75 +1,64 @@
 import PT from "prop-types";
-import React, { Children, cloneElement, useEffect, useRef } from "react";
-import { ConstraintLayoutSolver } from "./constraint-layout-solver";
+import React, { Children, cloneElement, forwardRef, useEffect, useRef } from "react";
 import { ConstrainedView } from "./constrained-view";
 import { ConstraintGuide } from "./constraint-guide";
+import { LayoutSolver } from "./core/layout-solver";
 import { isDefined } from "./utils";
 
-/**
- * ConstraintLayout which allows for positioning elements relative to each other
- * in a flat hierarchy by using constraints. Since a ConstraintLayout can be a
- * child of itself, we'll need to expose the _ref function.
- */
-// eslint-disable-next-line react/prop-types
-export const ConstraintLayout = ({ _ref, id, className, width, height, children }) => {
-    if (!isDefined(height)) throw "<ConstraintLayout /> height is required";
-
+/** ConstraintLayout which allows for positioning elements relative to each other in a flat hierarchy by using constraints */
+// eslint-disable-next-line react/display-name
+export const ConstraintLayout = forwardRef(({ id, className, width, height, children, style }, ref) => {
     const childrenArray = Children.toArray(children);
-    const validChildFunctions = [ConstrainedView, ConstraintLayout];
-    const views = childrenArray.filter(c => c.type && validChildFunctions.includes(c.type));
-    const guides = childrenArray.filter(c => c.type && c.type === ConstraintGuide);
-    const refs = useRef(Array(views.length).fill(null));
-    const solverRef = useRef(() => {});
-    const rootRef = useRef();
+    const views = childrenArray.filter(c => c.type !== ConstraintGuide);
+    const guides = childrenArray.filter(c => c.type === ConstraintGuide);
+    const childRefs = useRef(Array(views.length).fill(null));
+    const solverRef = useRef(new LayoutSolver());
+    const parentRef = useRef();
 
     useEffect(() => {
-        const solver = new ConstraintLayoutSolver(views, guides, refs.current, rootRef.current);
-        solverRef.current = solver;
-        solver.invalidate();
-    }, [children]);
+        // If the constraint layout is a child of itself, populate the ref with the parent element
+        if (ref) {
+            // If the child had a ref attached to it, assign the DOM element to it
+            if (Object.prototype.toString.call(ref) !== "[object Function]") {
+                ref.current = parentRef.current;
+            } else ref(parentRef.current);
+        }
 
-    useEffect(() => {
-        solverRef.current.invalidate();
-    }, [width, height]);
-
-    useEffect(() => {
-        // If _ref (a callback ref) was defined, pass the DOM element to it
-        // to make it also available to the parent ConstraintLayout
-        if (_ref) _ref(rootRef.current);
-        const onResize = () => solverRef.current.invalidate();
-        window.addEventListener("resize", onResize);
-        return () => window.removeEventListener("resize", onResize);
+        solverRef.current.init(views, childRefs.current, guides, parentRef.current, !isDefined(height));
+        const onWindowResize = () => solverRef.current.invalidate();
+        window.addEventListener("resize", onWindowResize);
+        return () => window.removeEventListener("resize", onWindowResize);
     }, []);
 
-    const style = { position: "relative", overflow: "hidden", width, height };
+    useEffect(() => {
+        solverRef.current.init(views, childRefs.current, guides, parentRef.current, !isDefined(height));
+        solverRef.current.invalidate();
+    }, [children, width, height]);
 
     return (
-        <div ref={rootRef} id={id} className={`constraint-layout ${className ? className : ""}`} style={style}>
-            {views.map((child, index) => {
-                const childRef = node => (refs.current[index] = node);
+        <div
+            id={id}
+            ref={parentRef}
+            className={`constraint-layout ${className ? className : ""}`}
+            style={{ position: "relative", overflow: "hidden", width, height, ...style }}>
+            {views.map((v, i) => {
+                const viewCallbackRef = node => (childRefs.current[i] = node);
                 // noinspection JSCheckFunctionSignatures
-                return cloneElement(child, { _ref: childRef });
+                return (
+                    <ConstrainedView key={i} ref={viewCallbackRef}>
+                        {cloneElement(v)}
+                    </ConstrainedView>
+                );
             })}
         </div>
     );
-};
+});
 
 ConstraintLayout.propTypes = {
+    id: PT.string,
+    className: PT.string,
     width: PT.oneOfType([PT.number, PT.string]),
     height: PT.oneOfType([PT.number, PT.string]),
-    marginTop: PT.oneOfType([PT.number, PT.string]),
-    marginLeft: PT.oneOfType([PT.number, PT.string]),
-    marginRight: PT.oneOfType([PT.number, PT.string]),
-    marginBottom: PT.oneOfType([PT.number, PT.string]),
-    leftToLeftOf: PT.oneOfType([PT.string, PT.array]),
-    leftToRightOf: PT.oneOfType([PT.string, PT.array]),
-    rightToRightOf: PT.oneOfType([PT.string, PT.array]),
-    rightToLeftOf: PT.oneOfType([PT.string, PT.array]),
-    topToTopOf: PT.oneOfType([PT.string, PT.array]),
-    topToBottomOf: PT.oneOfType([PT.string, PT.array]),
-    bottomToBottomOf: PT.oneOfType([PT.string, PT.array]),
-    bottomToTopOf: PT.oneOfType([PT.string, PT.array]),
-    horizontalBias: PT.number,
-    verticalBias: PT.number,
-    children: PT.any
+    children: PT.any,
+    style: PT.object
 };

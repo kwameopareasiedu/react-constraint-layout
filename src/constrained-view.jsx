@@ -1,22 +1,38 @@
-import React from "react";
+import React, { forwardRef, Children, useEffect, useRef } from "react";
 import PT from "prop-types";
 
 /** Represents a direct child of the ConstraintLayout */
-// eslint-disable-next-line react/prop-types
-export const ConstrainedView = ({ _ref, children, id, as: Component = "div", ...rest }) => {
+export const ConstrainedView = forwardRef(({ children }, ref) => {
+    const child = Children.toArray(children)[0];
+    const _ref = useRef();
+
+    useEffect(() => {
+        if (child.ref) {
+            // If the child had a ref attached to it, assign the DOM element to it
+            if (Object.prototype.toString.call(child.ref) !== "[object Function]") {
+                child.ref.current = _ref.current;
+            } else child.ref(_ref.current);
+        }
+
+        // Since ref is forwarded from the ConstraintLayout, it'll be a callback ref
+        if (ref) ref(_ref.current);
+    }, []);
+
     // Filter out non-HTML attributes to prevent console errors
-    const renderProps = Object.keys(rest)
+    const childRenderProps = Object.keys(child.props)
         .filter(k => !ConstrainedView.renderExcludedKeys.includes(k))
-        .reduce((acc, k) => ({ ...acc, [k]: rest[k] }), {});
+        .reduce((props, k) => ({ ...props, [k]: child.props[k] }), {});
 
     return (
-        <Component ref={_ref} id={id} {...renderProps}>
-            {children}
-        </Component>
+        <child.type ref={_ref} {...childRenderProps}>
+            {child.props.children}
+        </child.type>
     );
-};
+});
 
 ConstrainedView.renderExcludedKeys = [
+    "width",
+    "height",
     "marginTop",
     "marginLeft",
     "marginRight",
@@ -33,24 +49,4 @@ ConstrainedView.renderExcludedKeys = [
     "verticalBias"
 ];
 
-ConstrainedView.propTypes = {
-    as: PT.any,
-    id: PT.string,
-    width: PT.oneOfType([PT.number, PT.string]),
-    height: PT.oneOfType([PT.number, PT.string]),
-    marginTop: PT.oneOfType([PT.number, PT.string]),
-    marginLeft: PT.oneOfType([PT.number, PT.string]),
-    marginRight: PT.oneOfType([PT.number, PT.string]),
-    marginBottom: PT.oneOfType([PT.number, PT.string]),
-    leftToLeftOf: PT.oneOfType([PT.string, PT.array]),
-    leftToRightOf: PT.oneOfType([PT.string, PT.array]),
-    rightToRightOf: PT.oneOfType([PT.string, PT.array]),
-    rightToLeftOf: PT.oneOfType([PT.string, PT.array]),
-    topToTopOf: PT.oneOfType([PT.string, PT.array]),
-    topToBottomOf: PT.oneOfType([PT.string, PT.array]),
-    bottomToBottomOf: PT.oneOfType([PT.string, PT.array]),
-    bottomToTopOf: PT.oneOfType([PT.string, PT.array]),
-    horizontalBias: PT.number,
-    verticalBias: PT.number,
-    children: PT.any
-};
+ConstrainedView.propTypes = { children: PT.any };
