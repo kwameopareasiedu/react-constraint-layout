@@ -4,9 +4,9 @@ declare module "react-constraint-layout" {
 
     interface ConstraintProps {
         /** The view width in pixels */
-        width: number | string;
+        width?: number | string;
         /** The view height in pixels */
-        height: number | string;
+        height?: number | string;
         /** Top margin of the view relative to a constrained view on the top */
         marginTop?: number | string;
         /** Left margin of the view relative to a constrained view on the left */
