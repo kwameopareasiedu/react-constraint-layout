@@ -1,5 +1,5 @@
 import React from "react";
-import { ConstraintLayout } from "./constraint-layout";
+import { ConstraintLayout } from "../src/constraint-layout";
 import { Preview1 } from "../examples/preview1";
 import { Preview2 } from "../examples/preview2";
 
