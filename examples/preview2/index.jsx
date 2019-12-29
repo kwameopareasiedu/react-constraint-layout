@@ -1,7 +1,6 @@
 import React from "react";
 import { action } from "@storybook/addon-actions";
 import { ConstraintLayout } from "../../src/constraint-layout";
-import { ConstrainedView } from "../../src/constrained-view";
 import { ConstraintGuide } from "../../src/constraint-guide";
 import Banner from "./beauty-and-the-beast-banner.jpg";
 import Cover from "./beauty-and-the-beast-cover.jpeg";
@@ -9,30 +8,22 @@ import Cover from "./beauty-and-the-beast-cover.jpeg";
 export const Preview2 = () => {
     const onClick = action("OnClick");
 
+    // noinspection HtmlUnknownAttribute
     return (
-        <ConstraintLayout width={270} height={500}>
-            <ConstrainedView id="banner" height={150} width="match-parent" topToTopOf="_parent">
+        <ConstraintLayout width={270}>
+            <div id="banner" height={150} width="match-parent" topToTopOf="_parent">
                 <img src={Banner} alt="Movie banner" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            </ConstrainedView>
+            </div>
 
-            <ConstrainedView id="cover" width={75} height={110} topToBottomOf="banner" leftToLeftOf="_parent" marginLeft="8px" marginTop={-50}>
+            <div id="cover" width={75} height={110} topToBottomOf="banner" leftToLeftOf="_parent" marginLeft="8px" marginTop={-50}>
                 <img src={Cover} alt="Movie Cover" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            </ConstrainedView>
+            </div>
 
-            <ConstrainedView
-                id="title"
-                as="h5"
-                height="50px"
-                topToBottomOf="banner"
-                leftToRightOf="cover"
-                rightToRightOf="_parent"
-                marginLeft="8px"
-                marginTop="15px">
+            <h5 id="title" height="50px" topToBottomOf="banner" leftToRightOf="cover" rightToRightOf="_parent" marginLeft="8px" marginTop="15px">
                 Beauty and the Beast
-            </ConstrainedView>
+            </h5>
 
-            <ConstrainedView
-                as="p"
+            <p
                 id="details"
                 height="20px"
                 marginTop="8px"
@@ -41,13 +32,12 @@ export const Preview2 = () => {
                 rightToRightOf="_parent"
                 style={{ fontSize: "12px", color: "#676767" }}>
                 March 2017 PG 129 minutes
-            </ConstrainedView>
+            </p>
 
             <ConstraintGuide id="guide1" orientation="vertical" percent={50} />
 
-            <ConstrainedView
+            <button
                 id="rent-button"
-                as="button"
                 height="30px"
                 marginTop="15px"
                 marginRight="8px"
@@ -58,11 +48,10 @@ export const Preview2 = () => {
                 onClick={() => onClick("Rent movie")}
                 style={{ fontSize: "12px" }}>
                 Rent (GHS 15)
-            </ConstrainedView>
+            </button>
 
-            <ConstrainedView
+            <button
                 id="buy-button"
-                as="button"
                 height="30px"
                 marginLeft="8px"
                 marginRight="8px"
@@ -73,20 +62,11 @@ export const Preview2 = () => {
                 onClick={() => onClick("Buy movie")}
                 style={{ fontSize: "12px" }}>
                 Buy (GHS 35)
-            </ConstrainedView>
+            </button>
 
-            <ConstrainedView
-                id="rule1"
-                height="1px"
-                leftToLeftOf="rent-button"
-                rightToRightOf="buy-button"
-                topToBottomOf="buy-button"
-                marginTop="12px"
-                style={{ backgroundColor: "#e3e3e3" }}
-            />
+            <hr id="rule1" height="0" leftToLeftOf="rent-button" rightToRightOf="buy-button" topToBottomOf="buy-button" marginTop="12px" />
 
-            <ConstrainedView
-                as="i"
+            <i
                 width="48px"
                 height="32px"
                 id="pg-ratings"
@@ -98,8 +78,7 @@ export const Preview2 = () => {
                 style={{ fontSize: "32px", color: "#c34" }}
             />
 
-            <ConstrainedView
-                as="i"
+            <i
                 width="32px"
                 height="32px"
                 id="ratings"
@@ -110,8 +89,7 @@ export const Preview2 = () => {
                 style={{ fontSize: "32px", color: "#c34" }}
             />
 
-            <ConstrainedView
-                as="i"
+            <i
                 width="48px"
                 height="32px"
                 id="rotten-tomatoes"
@@ -121,8 +99,7 @@ export const Preview2 = () => {
                 style={{ fontSize: "32px", color: "#c34" }}
             />
 
-            <ConstrainedView
-                as="i"
+            <i
                 width="48px"
                 height="32px"
                 id="similar"
@@ -133,8 +110,7 @@ export const Preview2 = () => {
                 style={{ fontSize: "32px", color: "#c34" }}
             />
 
-            <ConstrainedView
-                as="p"
+            <p
                 height="48px"
                 marginTop="4px"
                 leftToLeftOf="pg-ratings"
@@ -143,10 +119,9 @@ export const Preview2 = () => {
                 className="text-center"
                 style={{ fontSize: "10px" }}>
                 Family
-            </ConstrainedView>
+            </p>
 
-            <ConstrainedView
-                as="p"
+            <p
                 height="48px"
                 marginTop="4px"
                 leftToLeftOf="ratings"
@@ -155,10 +130,9 @@ export const Preview2 = () => {
                 className="text-center"
                 style={{ fontSize: "10px" }}>
                 242 ratings
-            </ConstrainedView>
+            </p>
 
-            <ConstrainedView
-                as="p"
+            <p
                 height="48px"
                 marginTop="4px"
                 leftToLeftOf="rotten-tomatoes"
@@ -167,10 +141,9 @@ export const Preview2 = () => {
                 className="text-center"
                 style={{ fontSize: "10px" }}>
                 71%
-            </ConstrainedView>
+            </p>
 
-            <ConstrainedView
-                as="p"
+            <p
                 height="48px"
                 marginTop="4px"
                 leftToLeftOf="similar"
@@ -179,20 +152,11 @@ export const Preview2 = () => {
                 className="text-center"
                 style={{ fontSize: "10px" }}>
                 Similar
-            </ConstrainedView>
+            </p>
 
-            <ConstrainedView
-                id="rule2"
-                height="1px"
-                leftToLeftOf="rule1"
-                rightToRightOf="rule1"
-                topToBottomOf="rule1"
-                marginTop="90px"
-                style={{ backgroundColor: "#e3e3e3" }}
-            />
+            <hr id="rule2" height="0" leftToLeftOf="rule1" rightToRightOf="rule1" topToBottomOf="rule1" marginTop="90px" />
 
-            <ConstrainedView
-                as="p"
+            <p
                 height="100px"
                 marginTop="12px"
                 leftToLeftOf="rule2"
@@ -202,7 +166,7 @@ export const Preview2 = () => {
                 style={{ fontSize: "14px" }}>
                 The story and characters you know and love come to spectacular life in the live-action adaptation of Disney&apos;s animated classic
                 Beauty and the Beast.
-            </ConstrainedView>
+            </p>
         </ConstraintLayout>
     );
 };
