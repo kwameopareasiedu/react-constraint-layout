@@ -3,7 +3,7 @@
 react-constraint-layout is a Javascript library that provides a constraint based solution to position HTML elements relative to each other and to the parent **with zero CSS**.
 
 ![](https://img.shields.io/badge/react-v16.2.0+-blue)
-![](https://img.shields.io/badge/minified%20size-32.7%20kB-blue)
+![](https://img.shields.io/badge/minified%20size-39.6%20kB-blue)
 [![](https://img.shields.io/badge/github-star-lightgrey)](https://github.com/kwameopareasiedu/react-constraint-layout)
 [![](https://img.shields.io/badge/patreon-support-orange)](https://www.patreon.com/kwameopareasiedu)
 
@@ -13,7 +13,15 @@ If you like this project, you can support it by becoming a patreon [here](https:
 
 ### Install
 
-`npm install --save-dev react-constraint-layout` or `npm i -D react-constraint-layout`
+```shell script
+npm install --save-dev react-constraint-layout
+```
+
+or
+
+```shell script
+npm i -D react-constraint-layout
+```
 
 ### Screenshots
 
