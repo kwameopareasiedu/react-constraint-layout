@@ -87,7 +87,7 @@ The table below lists the props that are available for children of the `<Constra
 | `horizontalBias`   | `number`             | The bias used to shift the component along its constraint axis if it is fully horizontally constrained. Ranges from 0 to 1. Defaults to 0.5 |
 | `verticalBias`     | `number`             | The bias used to shift the component along its constraint axis if it is fully vertically constrained. Ranges from 0 to 1. Defaults to 0.5   |
 
-> The `width` and `height` props can be set to **match-content** and **match-parent**. This sets the dimension to match the content width/height or the parent width/height respectively
+> The `width` and `height` props can be set to **match-content** or **match-parent**. This sets the dimension to match the content width/height or the parent width/height respectively
 
 #### Responsiveness
 
