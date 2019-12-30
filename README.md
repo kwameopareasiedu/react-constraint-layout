@@ -22,62 +22,144 @@ If you like this project, you can support it by becoming a patreon [here](https:
 
 No, those screenshots **are not** Android. That's React, and the best part; they were done with **zero CSS** (No Bootstrap, No Flexbox, No CSS grid)
 
-### API
+### Usage
 
-The library exports three UI components which form the core of the framework:
+Below is an example of how you'd use the `<ConstraintLayout />`.
 
-1. `ConstraintLayout`
-2. `ConstrainedView`
-3. `ConstraintGuide`
+```JSX
+import { ConstraintLayout, ConstraintGuide } from "react-constraint-layout";
 
-##### ConstraintLayout
+<ConstraintLayout width="200px" height="400px">
+    <ConstraintGuide id="guide1" orientation="vertical" percent="50%" />
+    {/* ConstraintGuide id="guide1" orientation="vertical" begin="100px" /> This works too */}
 
-This component is the root component that positions its children relative to each other.
-It supports the following props:
+    <div
+        leftToLeftOf="_parent"
+        rightToLeftOf="guide1"
+        height="match-parent">
+        Left box
+    </div>
 
-| Prop     | Type                                       | Description                                                                                                                                     |
-| -------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `width`  | `string` or `number` (E.g. _20px_ or _20_) | The width of the component. Not specifying will default to the full width of its parent                                                         |
-| `height` | `string` or `number` (E.g. _50px_ or _50_) | The height of the component. Since children are absolutely positioned, the height cannot be automatically estimated. Hence this is **required** |
+    <div
+        leftToRightOf="guide1"
+        rightToRightOf="_parent"
+        height="match-parent">
+        Right box
+    </div>
+</ConstraintLayout>
+```
 
-> The `<ConstraintLayout/>` only supports `<ConstrainedView/>`, `<ConstraintGuide/>` and `<ConstraintLayout/>` as its **direct** children.
+> The width and height of the `<ConstraintLayout />` are optional. If width is not provided, the component will be the same width as its parent. If the height is not specified, it will be as tall as its content.
 
-##### ConstrainedView
+> The **\_parent** string is a special reference to the parent `<ConstraintLayout />`
 
-This component is a direct child of the `<ConstraintLayout/>`. This components provides constraint-related props for the positioning of itself relative to sibling views.
+#### Props
 
-| Prop               | Type                                       | Description                                                                                                                                                     |
-| ------------------ | :----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`               | `string`                                   | The identifier for the component. This is necessary if other views will be constrained to it.                                                                   |
-| `as`               | `string` or `Function`                     | This allows you to specify a tag name for the `<Constrained />` view. You can also specify another component to be rendered (More on this). Defaults to **div** |
-| `width`            | `string` or `number` (E.g. _20px_ or _20_) | The width of the component. Not specifying will default to _0px_. A zero-width component's width will only be controlled by the horizontal constraints (if any) |
-| `height`           | `string` or `number` (E.g. _50px_ or _50_) | The height of the component. Not specifying will default to _0px_. A zero-height component's width will only be controlled by the vertical constraints (if any) |
-| `leftToLeftOf`     | `string` or `Array`                        | Indicates that the left of this component is aligned to the left of another component specified by this id                                                      |
-| `leftToRightOf`    | `string` or `Array`                        | Indicates that the left of this component is aligned to the right of another component specified by this id                                                     |
-| `rightToRightOf`   | `string` or `Array`                        | Indicates that the right of this component is aligned to the right of another component specified by this id                                                    |
-| `rightToLeftOf`    | `string` or `Array`                        | Indicates that the right of this component is aligned to the left of another component specified by this id                                                     |
-| `topToTopOf`       | `string` or `Array`                        | Indicates that the top of this component is aligned to the top of another component specified by this id                                                        |
-| `topToBottomOf`    | `string` or `Array`                        | Indicates that the top of this component is aligned to the bottom of another component specified by this id                                                     |
-| `bottomToBottomOf` | `string` or `Array`                        | Indicates that the bottom of this component is aligned to the bottom of another component specified by this id                                                  |
-| `bottomToTopOf`    | `string` or `Array`                        | Indicates that the bottom of this component is aligned to the top of another component specified by this id                                                     |
-| `horizontalBias`   | `number` (0 to 1)                          | The bias used to shift the component along its constraint axis if it is fully horizontally constrained                                                          |
-| `verticalBias`     | `number` (0 to 1)                          | The bias used to shift the component along its constraint axis if it is fully vertically constrained                                                            |
+From the example above, you can see that the props can be specified even on HTML elements. The props are read by the `<ConstraintLayout />` and stripped out before the children are rendered.
 
-> Since the props are merged, you can add any React HTML attribute (E.g. style, onClick, etc.) directly to the `<ConstrainedView />`
-> component and the framework will render them on the DOM element itself.
+The table below lists the props that are available for children of the `<ConstraintLayout />`:
 
-> The value of a constraint prop (I.e. `leftToLeftOf`, `leftToRightOf`, etc.) can be set to **\_parent** to align with the parent.
-> As an example, we can use `leftToLeftOf="_parent"` to align the left of a component to the left of it's `<ConstraintLayout/>` parent.
+| Prop               | Type                 | Description                                                                                                                                 |
+| ------------------ | :------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | `string`             | The identifier for the component. This is necessary if other views will be constrained to it.                                               |
+| `width`            | `string` or `number` | The width of the component in **px**. Defaults to _0px_ (E.g. _20px_ or _20_)                                                               |
+| `height`           | `string` or `number` | The height of the component in **px**. Defaults to _0px_ (E.g. _50px_ or _50_)                                                              |
+| `marginTop`        | `string` or `number` | The top margin of the component                                                                                                             |
+| `marginLeft`       | `string` or `number` | The left margin of the component                                                                                                            |
+| `marginRight`      | `string` or `number` | The right margin of the component                                                                                                           |
+| `marginBottom`     | `string` or `number` | The bottom margin of the component                                                                                                          |
+| `leftToLeftOf`     | `string` or `Array`  | Indicates that the left of this component is aligned to the left of another component specified by this id                                  |
+| `leftToRightOf`    | `string` or `Array`  | Indicates that the left of this component is aligned to the right of another component specified by this id                                 |
+| `rightToRightOf`   | `string` or `Array`  | Indicates that the right of this component is aligned to the right of another component specified by this id                                |
+| `rightToLeftOf`    | `string` or `Array`  | Indicates that the right of this component is aligned to the left of another component specified by this id                                 |
+| `topToTopOf`       | `string` or `Array`  | Indicates that the top of this component is aligned to the top of another component specified by this id                                    |
+| `topToBottomOf`    | `string` or `Array`  | Indicates that the top of this component is aligned to the bottom of another component specified by this id                                 |
+| `bottomToBottomOf` | `string` or `Array`  | Indicates that the bottom of this component is aligned to the bottom of another component specified by this id                              |
+| `bottomToTopOf`    | `string` or `Array`  | Indicates that the bottom of this component is aligned to the top of another component specified by this id                                 |
+| `horizontalBias`   | `number`             | The bias used to shift the component along its constraint axis if it is fully horizontally constrained. Ranges from 0 to 1. Defaults to 0.5 |
+| `verticalBias`     | `number`             | The bias used to shift the component along its constraint axis if it is fully vertically constrained. Ranges from 0 to 1. Defaults to 0.5   |
 
-> If an array of ids is passed to any of the constraint props (I.e. `leftToLeftOf`, `leftToRightOf`, etc.), the solver will search the children with each array element and select the one which first matches a child.
-> This is useful if some children are conditionally rendered. If none of the ids match any of the children, the parent reference is used for that prop
+> The `width` and `height` props can be set to **match-content** and **match-parent**. This sets the dimension to match the content width/height or the parent width/height respectively
 
-> All the props of `<ConstrainedView />` can be used with `<ConstraintLayout />` because nesting of `<ConstraintLayout />` is also supported
+#### Responsiveness
 
-##### ConstraintGuide
+Except for _id_, all the props above can be prefixed to make them responsive.
 
-This is a non-visual component that serves as a guide for other `<ConstrainedView />` components to align with. For example, if you want a `<ConstrainedView />` to be aligned at 20% from the left of the parent view, you would create a `<ConstraintGuide />` and set its percent to _20%_.
-The best way to think of this component is as an invisible ruler within the `<ConstraintLayout />`.
+The table below shows the responsive prefixes and window sizes for triggering them:
+
+| Prefix | Window size     | Example           |
+| ------ | --------------- | ----------------- |
+| `sm_`  | 576px to 768px  | `sm_leftToLeftOf` |
+| `md_`  | 768px to 992px  | `md_leftToLeftOf` |
+| `lg_`  | 992px to 1200px | `lg_leftToLeftOf` |
+| `xl_`  | Above 1200px    | `lg_leftToLeftOf` |
+
+> The <ConstraintLayout /> looks for the prop variant in the order of `xl_` -> `lg_` -> `md_` -> `sm_`. If none of those are found, the non-prefixed variant is used. If none of these exist, the prop is skipped.
+
+An example of how the prefixes are used is shown below:
+
+```JSX
+<div
+    leftToRightOf="guide1"
+    sm_leftToRightOf="guide2"
+    topToTopOf="_parent"
+    md_topToTopOf={null}>
+    Right box
+</div>
+```
+
+_In this case, on a small screen, `leftToLeftOf` will have a value of **guide2** instead of **guide1** but on an extra small screen, `leftToLeftOf` will then have a value of **guide1**. Also in medium screens and above, `topToTopOf` is overridden with **null**._
+
+#### Nesting
+
+The `<ConstraintLayout />` can be nested within another `<ConstraintLayout />`. In this case, you can use all the available [props](#props) on it as well.
+
+#### Using with custom components
+
+If you'd like to use custom components as direct children of `<ConstraintLayout />`, you must wrap your component definition with `React.forwardRef()` to make the ref available to the root DOM element of the component.
+
+For example, say you have this component:
+
+```JSX
+const MyFancyButton = ({ children, ...rest }) => {
+    return (
+        <button {...rest}>
+            {props.children}
+        </button>
+    );
+}
+```
+
+Now you'd like to use this component as a child of the `<ConstraintLayout />` like so:
+
+```JSX
+<ConstraintLayout>
+    <MyFancyButton />
+</ConstraintLayout>
+```
+
+To make this work, you'll have to modify your component to:
+
+```JSX
+const MyFancyButton = React.forwardRef (({ children, ...rest }, ref) => {
+
+    // Notice how the forwaded ref is used as the ref of button
+
+    return (
+        <button ref={ref} {...rest}>
+            {props.children}
+        </button>
+    );
+})
+```
+
+_However if the component is not yours (I.e. from another library), you can just enclose it in a `<div />` and add the constraints on the `<div />` itself._
+
+#### ConstraintGuide
+
+This is a non-visual component that serves as an anchor for other components. For example, if you want a component aligned at 20% from the left of the parent, you'd create a `<ConstraintGuide />` and set its percent to _20%_.
+
+A good way to think of this component is as an invisible ruler within the `<ConstraintLayout />`.
 
 It supports the following props:
 
@@ -120,6 +202,12 @@ It would be really helpful if you can star the project on [Github](https://githu
 
 ### Changelog
 
+-   2.0.0 (Breaking)
+    -   Complete rewrite of the library's core.
+    -   Added support for use of native HTML elements directly as children, hence `<ConstrainedView />` is now not included in public API
+    -   Added support for responsive attribute prefixes, hence `useWindowBreakpoints` is now removed from library
+    -   Added support for automatic height computation of parent `<ConstraintLayout />` if height prop is not specified
+    -   Improved algorithm for `match-content` height computation
 -   1.0.2
     -   Fixed solver update on window resize feature in `<ConstraintLayout />` component
     -   Added `useWindowBreakpoints` hook. Handy for conditional rendering at different window breakpoints

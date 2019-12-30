@@ -2,7 +2,16 @@ declare module "react-constraint-layout" {
     // @ts-ignore
     import React from "react";
 
-    interface ConstraintProps {
+    enum ConstraintGuideOrientation {
+        vertical,
+        horizontal
+    }
+
+    interface ConstraintLayoutProps {
+        /** ID of the guide. Necessary if other views are constrained to it */
+        id?: string;
+        /** Class of the layout */
+        className?: string;
         /** The view width in pixels */
         width?: number | string;
         /** The view height in pixels */
@@ -163,18 +172,6 @@ declare module "react-constraint-layout" {
         xl_horizontalBias?: number;
         /** Same as width but for extra large screens (1200px+) */
         xl_verticalBias?: number;
-    }
-
-    enum ConstraintGuideOrientation {
-        vertical,
-        horizontal
-    }
-
-    interface ConstraintLayoutProps extends ConstraintProps {
-        /** ID of the guide. Necessary if other views are constrained to it */
-        id?: string;
-        /** Class of the layout */
-        className?: string;
     }
 
     interface ConstraintGuideProps {
