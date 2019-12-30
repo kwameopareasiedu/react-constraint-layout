@@ -1,6 +1,6 @@
 import { ConstraintTarget } from "./constraint-target";
 import { DimensionConstant } from "./dimension-constant";
-import { isDefined } from "../utils";
+import { isDefined, firstDefinedOf } from "../utils";
 
 /**
  * An holder representation of a ConstrainedView. Also contains the coordinate pairs
@@ -8,32 +8,44 @@ import { isDefined } from "../utils";
  * left corner position while (x2, y2) represents the bottom right corner.
  */
 export function ViewHolder(data, view) {
+    const stringDimensions = [DimensionConstant.MATCH_PARENT, DimensionConstant.MATCH_CONTENT];
     this.data = data;
     this.view = view;
 
     this.id = data.props.id || this.generateViewId();
-    this.marginTop = parseInt(data.props.marginTop || 0);
-    this.marginLeft = parseInt(data.props.marginLeft || 0);
-    this.marginRight = parseInt(data.props.marginRight || 0);
-    this.marginBottom = parseInt(data.props.marginBottom || 0);
-    this.leftToLeftOf = data.props[ConstraintTarget.LEFT_TO_LEFT_OF] || null;
-    this.leftToRightOf = data.props[ConstraintTarget.LEFT_TO_RIGHT_OF] || null;
-    this.rightToLeftOf = data.props[ConstraintTarget.RIGHT_TO_LEFT_OF] || null;
-    this.rightToRightOf = data.props[ConstraintTarget.RIGHT_TO_RIGHT_OF] || null;
-    this.topToTopOf = data.props[ConstraintTarget.TOP_TO_TOP_OF] || null;
-    this.topToBottomOf = data.props[ConstraintTarget.TOP_TO_BOTTOM_OF] || null;
-    this.bottomToTopOf = data.props[ConstraintTarget.BOTTOM_TO_TOP_OF] || null;
-    this.bottomToBottomOf = data.props[ConstraintTarget.BOTTOM_TO_BOTTOM_OF] || null;
-    this.horizontalBias = (function() {
-        if (Object.prototype.toString.call(data.props.horizontalBias) === "[object Number]") {
+
+    this.width = (function(value) {
+        if (stringDimensions.includes(value)) return value;
+        return parseInt(value || 0);
+    })(this.resolveBreakpointProp("width"));
+
+    this.height = (function(value) {
+        if (stringDimensions.includes(value)) return value;
+        return parseInt(value || 0);
+    })(this.resolveBreakpointProp("height"));
+
+    this.marginTop = parseInt(this.resolveBreakpointProp("marginTop") || 0);
+    this.marginLeft = parseInt(this.resolveBreakpointProp("marginLeft") || 0);
+    this.marginRight = parseInt(this.resolveBreakpointProp("marginRight") || 0);
+    this.marginBottom = parseInt(this.resolveBreakpointProp("marginBottom") || 0);
+    this.leftToLeftOf = this.resolveBreakpointProp(ConstraintTarget.LEFT_TO_LEFT_OF);
+    this.leftToRightOf = this.resolveBreakpointProp(ConstraintTarget.LEFT_TO_RIGHT_OF);
+    this.rightToLeftOf = this.resolveBreakpointProp(ConstraintTarget.RIGHT_TO_LEFT_OF);
+    this.rightToRightOf = this.resolveBreakpointProp(ConstraintTarget.RIGHT_TO_RIGHT_OF);
+    this.topToTopOf = this.resolveBreakpointProp(ConstraintTarget.TOP_TO_TOP_OF);
+    this.topToBottomOf = this.resolveBreakpointProp(ConstraintTarget.TOP_TO_BOTTOM_OF);
+    this.bottomToTopOf = this.resolveBreakpointProp(ConstraintTarget.BOTTOM_TO_TOP_OF);
+    this.bottomToBottomOf = this.resolveBreakpointProp(ConstraintTarget.BOTTOM_TO_BOTTOM_OF);
+    this.horizontalBias = (function(self) {
+        if (Object.prototype.toString.call(self.resolveBreakpointProp("horizontalBias")) === "[object Number]") {
             return Math.max(0, Math.min(1, parseFloat(data.props.horizontalBias)));
         } else return 0.5;
-    })();
-    this.verticalBias = (function() {
-        if (Object.prototype.toString.call(data.props.verticalBias) === "[object Number]") {
+    })(this);
+    this.verticalBias = (function(self) {
+        if (Object.prototype.toString.call(self.resolveBreakpointProp("verticalBias")) === "[object Number]") {
             return Math.max(0, Math.min(1, parseFloat(data.props.verticalBias)));
         } else return 0.5;
-    })();
+    })(this);
 
     this.validateAttributes();
 
@@ -68,14 +80,14 @@ ViewHolder.prototype.validateAttributes = function() {
     const stringDimensions = [DimensionConstant.MATCH_PARENT, DimensionConstant.MATCH_CONTENT];
 
     // Validate width value
-    const propWidthValue = this.data.props.width;
+    const propWidthValue = this.width;
     if (isDefined(propWidthValue) && !isNaN(parseFloat(propWidthValue)) && parseFloat(propWidthValue) < 0)
         throw `${this.id}: Width cannot be less than 0`;
     if (isDefined(propWidthValue) && isNaN(parseFloat(propWidthValue)) && !stringDimensions.includes(propWidthValue))
         throw `${this.id}: Width must either be "${DimensionConstant.MATCH_PARENT}" or "${DimensionConstant.MATCH_CONTENT}"`;
 
     // Validate height value
-    const propHeightValue = this.data.props.height;
+    const propHeightValue = this.height;
     if (isDefined(propHeightValue) && !isNaN(parseFloat(propHeightValue)) && parseFloat(propHeightValue) < 0)
         throw `${this.id}: Height is cannot be less than 0`;
     if (isDefined(propHeightValue) && isNaN(parseFloat(propHeightValue)) && !stringDimensions.includes(propHeightValue))
@@ -96,4 +108,29 @@ ViewHolder.prototype.validateAttributes = function() {
     if (this.topToBottomOf === this.id) throw `${this.id}: Cannot be constrained to self on "topToBottomOf"`;
     if (this.bottomToBottomOf === this.id) throw `${this.id}: Cannot be constrained to self on "bottomToBottomOf"`;
     if (this.bottomToTopOf === this.id) throw `${this.id}: Cannot be constrained to self on "bottomToTopOf"`;
+};
+
+/**
+ * For a given constraint prop name, and the window size, selects the appropriate
+ * prefixed constraint prop name and returns the value of that props from data.props
+ * E.g. If the window size is 800px and "leftToLeftOf" "md_leftToLeftOf" is defined,
+ * return the value of prop "md_leftToLeftOf", but if the window size is 600px,
+ * return the value of prop "leftToLeftOf"
+ * @returns {string | null | number} The value of the prop for the breakpoint
+ * */
+ViewHolder.prototype.resolveBreakpointProp = function(propName) {
+    const windowWidth = window.innerWidth;
+    const breakpointPropValues = [
+        this.data.props["xl_" + propName],
+        this.data.props["lg_" + propName],
+        this.data.props["md_" + propName],
+        this.data.props["sm_" + propName],
+        this.data.props[propName]
+    ];
+
+    if (windowWidth > 1200) return firstDefinedOf.apply(null, breakpointPropValues);
+    if (windowWidth > 992) return firstDefinedOf.apply(null, breakpointPropValues.slice(1));
+    if (windowWidth > 768) return firstDefinedOf.apply(null, breakpointPropValues.slice(2));
+    if (windowWidth > 576) return firstDefinedOf.apply(null, breakpointPropValues.slice(3));
+    return firstDefinedOf.apply(null, breakpointPropValues.slice(4));
 };

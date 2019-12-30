@@ -18,22 +18,22 @@ export const ConstraintLayout = forwardRef(({ id, className, width, height, chil
     useEffect(() => {
         // If the constraint layout is a child of itself, populate the ref with the parent element
         if (ref) {
-            // If the child had a ref attached to it, assign the DOM element to it
             if (Object.prototype.toString.call(ref) !== "[object Function]") {
                 ref.current = parentRef.current;
             } else ref(parentRef.current);
         }
 
-        solverRef.current.init(views, childRefs.current, guides, parentRef.current, !isDefined(height));
-        const onWindowResize = () => solverRef.current.invalidate();
-        window.addEventListener("resize", onWindowResize);
-        return () => window.removeEventListener("resize", onWindowResize);
+        updateSolver();
+        window.addEventListener("resize", updateSolver);
+        return () => window.removeEventListener("resize", updateSolver);
     }, []);
 
-    useEffect(() => {
+    useEffect(() => updateSolver());
+
+    const updateSolver = () => {
         solverRef.current.init(views, childRefs.current, guides, parentRef.current, !isDefined(height));
         solverRef.current.invalidate();
-    }, [children, width, height]);
+    };
 
     return (
         <div

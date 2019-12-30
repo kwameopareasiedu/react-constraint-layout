@@ -18,9 +18,9 @@ export const ConstrainedView = forwardRef(({ children }, ref) => {
         if (ref) ref(_ref.current);
     }, []);
 
-    // Filter out non-HTML attributes to prevent console errors
+    // Filter out non-HTML attributes (with their breakpoint versions as well) to prevent console errors
     const childRenderProps = Object.keys(child.props)
-        .filter(k => !ConstrainedView.renderExcludedKeys.includes(k))
+        .filter(k => !ConstrainedView.renderExcludedKeys.reduce((acc, k) => [...acc, k, `sm_${k}`, `md_${k}`, `lg_${k}`, `xl_${k}`], []).includes(k))
         .reduce((props, k) => ({ ...props, [k]: child.props[k] }), {});
 
     return (

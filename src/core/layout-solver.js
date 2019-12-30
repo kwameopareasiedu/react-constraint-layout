@@ -51,6 +51,11 @@ LayoutSolver.prototype.invalidate = function() {
     // heights are defined as "match-content"
     this.updateHeight();
     this.applyStyles();
+    // This last pass is to finalize the values as some elements have been
+    // observed to shift position after "match-content" adjustments
+    this.updateGuides();
+    this.updateHeight();
+    this.applyStyles();
 };
 
 /** Updates the state of the guide holders */
@@ -131,7 +136,7 @@ LayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) {
 
     // Use the view holder's props to determine the requested width value
     const { value: requestedWidth, spec: requestedSpec } = (function() {
-        const { width: propWidth } = viewHolder.data.props;
+        const { width: propWidth } = viewHolder;
         const { width: renderWidth } = viewHolder.view.getBoundingClientRect();
         const _propWidth = parseFloat(propWidth);
         const isNumeric = !isNaN(_propWidth);
@@ -172,7 +177,7 @@ LayoutSolver.prototype.measureHorizontalBounds = function(viewHolder) {
 
     if (requestedWidth <= availableWidth) {
         if (requestedSpec === MeasureSpec.UNSPECIFIED) {
-            return new MeasureSpec(MeasureSpec.EXACTLY, availableWidth);
+            return new MeasureSpec(MeasureSpec.EXACTLY, viewHolder.isHorizontallyConstrained ? availableWidth : 0);
         } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedWidth);
     } else return new MeasureSpec(MeasureSpec.EXACTLY, availableWidth);
 };
@@ -249,8 +254,19 @@ LayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
 
     // Use the view holder's props to determine the requested height value
     const { value: requestedHeight, spec: requestedSpec } = (function() {
-        const { height: propHeight } = viewHolder.data.props;
-        const renderHeight = viewHolder.view.scrollHeight;
+        // To get the true rendered height,
+        // 1. Clone the node...
+        const clonedNode = viewHolder.view.cloneNode(true);
+        // 2. Reset height and opacity on the cloned node
+        clonedNode.style.height = "auto";
+        clonedNode.style.opacity = "0.01";
+        // 3. Append the cloned node to the body
+        document.body.appendChild(clonedNode);
+        const renderHeight = clonedNode.scrollHeight;
+        // 4. Remove the cloned node from the body
+        document.body.removeChild(clonedNode);
+
+        const { height: propHeight } = viewHolder;
         const _propHeight = parseFloat(propHeight);
         const isNumeric = !isNaN(_propHeight);
 
@@ -290,7 +306,7 @@ LayoutSolver.prototype.measureVerticalBounds = function(viewHolder) {
 
     if (requestedHeight <= availableHeight) {
         if (requestedSpec === MeasureSpec.UNSPECIFIED) {
-            return new MeasureSpec(MeasureSpec.EXACTLY, availableHeight);
+            return new MeasureSpec(MeasureSpec.EXACTLY, viewHolder.isVerticallyConstrained ? availableHeight : 0);
         } else return new MeasureSpec(MeasureSpec.EXACTLY, requestedHeight);
     } else return new MeasureSpec(MeasureSpec.EXACTLY, availableHeight);
 };
@@ -302,7 +318,6 @@ LayoutSolver.prototype.applyStyles = function() {
     for (const viewHolder of this.viewHolders) {
         viewHolder.view.style.position = "absolute";
         viewHolder.view.style.display = "block";
-        viewHolder.view.style.width = "auto";
         viewHolder.view.style.margin = "0";
         viewHolder.view.style.overflow = "hidden";
         viewHolder.view.style.boxSizing = "border-box";
